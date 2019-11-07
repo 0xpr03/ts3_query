@@ -1,0 +1,9 @@
+[package]
+name = "ts3-query"
+version = "0.1.0"
+authors = ["Aron Heinecke <aron.heinecke@t-online.de>"]
+edition = "2018"
+description = "Teamspeak3 Query Library"
+
+[dependencies]
+snafu = { version = "0.5" }
