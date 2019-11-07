@@ -22,7 +22,7 @@ pub fn parse_hashmap(input: Vec<String>, unescape: bool) -> HashMap<String, Stri
     map
 }
 
-/// Escape string for ts3
+/// Escape string for query commands send via raw function
 pub fn escape_arg(input: &str) -> String {
     let res: Vec<u8> = Escape::new(input.bytes()).collect();
     String::from_utf8(res).unwrap()

@@ -3,7 +3,12 @@ name = "ts3-query"
 version = "0.1.0"
 authors = ["Aron Heinecke <aron.heinecke@t-online.de>"]
 edition = "2018"
+keywords = ["ts3","query","teamspeak3"]
 description = "Teamspeak3 Query Library"
+repository = "https://github.com/0xpr03/ts3_query"
+license = "MIT/Apache-2.0"
+categories = ["api-bindings"]
+readme = "README.md"
 
 [dependencies]
 snafu = { version = "0.5" }

@@ -1,5 +1,7 @@
 //! Ts3 query library
-//! Bare-metal without any callback support currently.
+//! Small, bare-metal ts query lib without any callback support currently.
+//! 
+//! # Examples
 //! 
 //! ```rust,no_run
 //! use ts3_query::*;
