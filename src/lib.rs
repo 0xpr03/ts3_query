@@ -1,29 +1,29 @@
 //! Ts3 query library
 //! Small, bare-metal ts query lib without any callback support currently.
-//! 
+//!
 //! # Examples
-//! 
+//!
 //! ```rust,no_run
 //! use ts3_query::*;
-//! 
+//!
 //! # fn main() -> Result<(),Ts3Error> {
 //! let mut client = QueryClient::new("localhost:10011")?;
-//! 
+//!
 //! client.login("serveradmin", "password")?;
 //! client.select_server_by_port(9987)?;
-//! 
+//!
 //! let clients = client.get_servergroup_client_list(7)?;
 //! println!("Got clients in group 7: {:?}",clients);
-//! 
+//!
 //! client.logout()?;
 //! # Ok(())
 //! # }
-//! 
+//!
 //! ```
 use snafu::{ResultExt, Snafu};
 use std::collections::HashMap;
 use std::io::{self, BufRead, BufReader, Write};
-use std::net::{TcpStream, ToSocketAddrs};
+use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::string::FromUtf8Error;
 use std::time::Duration;
 
@@ -36,7 +36,7 @@ pub enum Ts3Error {
     #[snafu(display("Input was invalid UTF-8: {}", source))]
     Utf8Error { source: FromUtf8Error },
     /// Catch-all IO error, contains optional context
-    #[snafu(display("IO Error: {}{}", context, source))]
+    #[snafu(display("IO Error: {}{}, kind: {:?}", context, source,source.kind()))]
     Io {
         /// Context of action, empty per default.
         ///
@@ -85,7 +85,7 @@ pub struct ErrorResponse {
 
 impl std::fmt::Display for ErrorResponse {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Error code {}, msg:{}", self.id, self.msg)
+        writeln!(f, "Error code {}, msg:{}", self.id, self.msg)
     }
 }
 
@@ -101,24 +101,26 @@ type Result<T> = ::std::result::Result<T, Ts3Error>;
 
 impl Drop for QueryClient {
     fn drop(&mut self) {
-        let _ = self.logout();
+        self.quit();
+        let _ = self.tx.shutdown(Shutdown::Both);
     }
 }
 
 impl QueryClient {
     /// Create new query connection
     pub fn new<A: ToSocketAddrs>(addr: A) -> Result<Self> {
-        let (rx,tx) = Self::new_inner(addr)?;
+        let (rx, tx) = Self::new_inner(addr)?;
 
-        Ok(Self {
-            rx,
-            tx,
-        })
+        Ok(Self { rx, tx })
+    }
+
+    fn quit(&mut self) {
+        let _ = writeln!(&mut self.tx, "quit");
     }
 
     fn new_inner<A: ToSocketAddrs>(addr: A) -> Result<(BufReader<TcpStream>, TcpStream)> {
         let stream = TcpStream::connect(addr).context(Io {
-            context: "whie connecting: ",
+            context: "while connecting: ",
         })?;
 
         stream
@@ -135,17 +137,47 @@ impl QueryClient {
             context: "setting nodelay: ",
         })?;
 
-        let reader = BufReader::new(stream.try_clone().context(Io {
+        let mut reader = BufReader::new(stream.try_clone().context(Io {
             context: "splitting connection: ",
         })?);
-        Ok((reader,stream))
+
+        // read server type token
+        let mut buffer = Vec::new();
+        reader.read_until(b'\r', &mut buffer).context(Io {
+            context: "reading response: ",
+        })?;
+        println!("{:?}", buffer);
+
+        // lower timeout for garbage welcome
+        stream
+            .set_read_timeout(Some(Duration::new(0, 500)))
+            .context(Io {
+                context: "setting read timeout: ",
+            })?;
+        buffer.clear();
+        if let Err(e) = reader.read_until(b'\r', &mut buffer) {
+            use std::io::ErrorKind::*;
+            match e.kind() {
+                TimedOut | WouldBlock => (), // ignore no greeting
+                _ => return Err(e.into()),
+            }
+        }
+
+        // set timeout back to normal
+        stream
+            .set_read_timeout(Some(Duration::new(20, 0)))
+            .context(Io {
+                context: "setting read timeout: ",
+            })?;
+
+        Ok((reader, stream))
     }
 
     /// Perform a raw command, returns its response
     ///
     /// You need to escape the command properly.
     pub fn raw_command(&mut self, command: &str) -> Result<Vec<String>> {
-        write!(&mut self.tx, "{}\n\r", command)?;
+        writeln!(&mut self.tx, "{}", command)?;
         let v = self.read_response()?;
         Ok(v)
     }
@@ -154,25 +186,25 @@ impl QueryClient {
     ///
     /// Returns a hashmap of entries
     pub fn whoami(&mut self) -> Result<HashMap<String, String>> {
-        write!(&mut self.tx, "whoami\n\r")?;
+        writeln!(&mut self.tx, "whoami")?;
         let v = self.read_response()?;
         Ok(parse_hashmap(v, false))
     }
 
     /// Logout
     pub fn logout(&mut self) -> Result<()> {
-        write!(&mut self.tx, "logout\n\r")?;
+        writeln!(&mut self.tx, "logout")?;
         let _ = self.read_response()?;
         Ok(())
     }
 
     /// Login with provided data
-    /// 
+    ///
     /// On drop queryclient issues a logout
     pub fn login(&mut self, user: &str, password: &str) -> Result<()> {
-        write!(
+        writeln!(
             &mut self.tx,
-            "login {} {}\n\r",
+            "login {} {}",
             escape_arg(user),
             escape_arg(password)
         )?;
@@ -184,7 +216,7 @@ impl QueryClient {
 
     /// Select server to perform commands on, by port
     pub fn select_server_by_port(&mut self, port: u16) -> Result<()> {
-        write!(&mut self.tx, "use port={}\n\r", port)?;
+        writeln!(&mut self.tx, "use port={}", port)?;
 
         let _ = self.read_response()?;
         Ok(())
@@ -194,9 +226,9 @@ impl QueryClient {
     ///
     /// Performs ftcreatedir
     pub fn create_dir(&mut self, cid: usize, path: &str) -> Result<()> {
-        write!(
+        writeln!(
             &mut self.tx,
-            "ftcreatedir cid={} cpw= dirname={}\n\r",
+            "ftcreatedir cid={} cpw= dirname={}",
             cid,
             escape_arg(path)
         )?;
@@ -210,9 +242,9 @@ impl QueryClient {
     ///
     /// Performs ftdeletefile
     pub fn delete_file(&mut self, cid: usize, path: &str) -> Result<()> {
-        write!(
+        writeln!(
             &mut self.tx,
-            "ftdeletefile cid={} cpw= name={}\n\r",
+            "ftdeletefile cid={} cpw= name={}",
             cid,
             escape_arg(path)
         )?;
@@ -224,14 +256,14 @@ impl QueryClient {
     ///
     /// Performs whoami command without parsing
     pub fn ping(&mut self) -> Result<()> {
-        write!(&mut self.tx, "whoami\n\r")?;
+        writeln!(&mut self.tx, "whoami")?;
         let _ = self.read_response()?;
         Ok(())
     }
 
     /// Select server to perform commands on, by server id
     pub fn select_server_by_id(&mut self, sid: usize) -> Result<()> {
-        write!(&mut self.tx, "use sid={}\n\r", sid)?;
+        writeln!(&mut self.tx, "use sid={}", sid)?;
 
         let _ = self.read_response()?;
         Ok(())
@@ -242,9 +274,9 @@ impl QueryClient {
         if cldbid.is_empty() {
             return Ok(());
         }
-        write!(
+        writeln!(
             &mut self.tx,
-            "servergroupdelclient sgid={} {}\n\r",
+            "servergroupdelclient sgid={} {}",
             group,
             Self::format_cldbids(cldbid)
         )?;
@@ -258,11 +290,7 @@ impl QueryClient {
             return Ok(());
         }
         let v = Self::format_cldbids(cldbid);
-        write!(
-            &mut self.tx,
-            "servergroupaddclient sgid={} {}\n\r",
-            group, v
-        )?;
+        writeln!(&mut self.tx, "servergroupaddclient sgid={} {}", group, v)?;
         let _ = self.read_response()?;
         Ok(())
     }
@@ -273,10 +301,10 @@ impl QueryClient {
         let mut res: Vec<u8> = Vec::new();
         let mut it = it.iter();
         if let Some(n) = it.next() {
-            write!(res, "cldbid={}", n).unwrap();
+            writeln!(res, "cldbid={}", n).unwrap();
         }
         for n in it {
-            write!(res, "|cldbid={}", n).unwrap();
+            writeln!(res, "|cldbid={}", n).unwrap();
         }
         unsafe {
             // we know this is utf8 as we only added utf8 strings using fmt
@@ -289,16 +317,15 @@ impl QueryClient {
         let mut result: Vec<String> = Vec::new();
         for _ in 0..MAX_TRIES {
             let mut buffer = Vec::with_capacity(20);
-            // \n\r line ending
+            //  line ending
             while {
                 self.rx.read_until(b'\r', &mut buffer).context(Io {
                     context: "reading response: ",
                 })?;
-
-                // check for exact '\n\r'
-                buffer.get(buffer.len() - 2).map_or(false, |v| *v == b'\n')
+                // check for exact ''
+                buffer.get(buffer.len() - 2).map_or(true, |v| *v != b'\n')
             } {}
-            // remove \n\r
+            // remove
             buffer.pop();
             buffer.pop();
 
@@ -316,11 +343,7 @@ impl QueryClient {
     ///
     /// See servergroupclientlist
     pub fn get_servergroup_client_list(&mut self, server_group: usize) -> Result<Vec<usize>> {
-        write!(
-            &mut self.tx,
-            "servergroupclientlist sgid={}\n\r",
-            server_group
-        )?;
+        writeln!(&mut self.tx, "servergroupclientlist sgid={}", server_group)?;
 
         let resp = self.read_response()?;
         if let Some(line) = resp.get(0) {
