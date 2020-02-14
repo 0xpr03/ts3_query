@@ -2,7 +2,7 @@
 //! Small, bare-metal ts query lib without any callback support currently.
 //!
 //! # Examples
-//!
+//! Simple auth + clients of a server group
 //! ```rust,no_run
 //! use ts3_query::*;
 //!
@@ -12,9 +12,33 @@
 //! client.login("serveradmin", "password")?;
 //! client.select_server_by_port(9987)?;
 //!
-//! let clients = client.get_servergroup_client_list(7)?;
-//! println!("Got clients in group 7: {:?}",clients);
+//! let group_clients = client.get_servergroup_client_list(7)?;
+//! println!("Got clients in group 7: {:?}",group_clients);
 //!
+//! client.logout()?;
+//! # Ok(())
+//! # }
+//!
+//! ```
+//! 
+//! Using the raw interface for setting client descriptions.
+//! ```rust,no_run
+//! use ts3_query::*;
+//!
+//! # fn main() -> Result<(),Ts3Error> {
+//! let mut client = QueryClient::new("localhost:10011")?;
+//!
+//! client.login("serveradmin", "password")?;
+//! client.select_server_by_port(9987)?;
+//!
+//! // escape things like string args, not required for clid
+//! // as it's not user input/special chars in this case
+//! let cmd = format!("clientedit clid={} client_description={}",
+//!  7, raw::escape_arg("Some Description!")
+//! );
+//! // we don't expect any value returned
+//! let _ = client.raw_command(&cmd)?;
+//! 
 //! client.logout()?;
 //! # Ok(())
 //! # }
@@ -47,6 +71,7 @@ pub enum Ts3Error {
     /// Invalid response error,
     #[snafu(display("Received invalid response: {}", data))]
     InvalidResponse { context: &'static str, data: String },
+    /// TS3-Server error response
     #[snafu(display("Server error: {}", response))]
     ServerError { response: ErrorResponse },
     /// Maximum amount of response lines reached, DDOS limit prevented further data read.
@@ -114,10 +139,12 @@ impl QueryClient {
         Ok(Self { rx, tx })
     }
 
+    /// Send quit command, does not close the socket, not to be exposed
     fn quit(&mut self) {
         let _ = writeln!(&mut self.tx, "quit");
     }
 
+    /// Inner new-function that handles greeting etc
     fn new_inner<A: ToSocketAddrs>(addr: A) -> Result<(BufReader<TcpStream>, TcpStream)> {
         let stream = TcpStream::connect(addr).context(Io {
             context: "while connecting: ",
