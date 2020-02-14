@@ -1,4 +1,4 @@
-//! Ts3 query library
+//! Ts3 query library  
 //! Small, bare-metal ts query lib without any callback support currently.
 //!
 //! # Examples
