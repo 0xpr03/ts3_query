@@ -68,7 +68,7 @@ pub enum Ts3Error {
         context: &'static str,
         source: io::Error,
     },
-    /// Invalid response error,
+    /// Invalid response error. Server returned unexpected data.
     #[snafu(display("Received invalid response: {}", data))]
     InvalidResponse { context: &'static str, data: String },
     /// TS3-Server error response
@@ -76,7 +76,7 @@ pub enum Ts3Error {
     ServerError { response: ErrorResponse },
     /// Maximum amount of response lines reached, DDOS limit prevented further data read.
     ///
-    /// This will probably cause the current connection to be come invalid due to remaining data in the connection.
+    /// This will probably cause the current connection to become invalid due to remaining data in the connection.
     #[snafu(display("Invalid response, too many lines, DDOS limit reached: {:?}", response))]
     ResponseLimit { response: Vec<String> },
 }
