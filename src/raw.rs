@@ -152,3 +152,17 @@ impl<I: Iterator<Item = u8>> Iterator for Escape<I> {
         )
     }
 }
+
+#[cfg(test)]
+mod test {
+    /// Verify all escape sequences are valid utf-8 the easy way.
+    /// Otherwise the conversion in read_response would be invalid as we're not un-escaping before converting it into a string.
+    /// 
+    /// This also enforces the invariant of our unsafe utf8 conversion on unescaping.
+    #[test]
+    pub fn test_escaped_input() {
+        let v: Vec<u8> = vec![b'\\', b'/', 7, 8, 12, 11, b'\t', b'\r', b'\n'];
+
+        assert!(true, String::from_utf8(v).is_ok());
+    }
+}
