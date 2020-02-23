@@ -147,6 +147,20 @@ impl QueryClient {
         Ok(Self { rx, tx })
     }
 
+    /// Rename this client, performs `clientupdate client_nickname` escaping the name
+    pub fn rename(&mut self, name: &str) -> Result<()> {
+        writeln!(&mut self.tx, "clientupdate client_nickname={}",escape_arg(name))?;
+        let _ = self.read_response()?;
+        Ok(())
+    }
+
+    /// Update this clients description
+    pub fn update_description(&mut self, descr: &str) -> Result<()> {
+        write!(&mut self.tx,"clientupdate CLIENT_DESCRIPTION={}",escape_arg(descr))?;
+        let _ = self.read_response()?;
+        Ok(())
+    }
+
     /// Send quit command, does not close the socket, not to be exposed
     fn quit(&mut self) {
         let _ = writeln!(&mut self.tx, "quit");
