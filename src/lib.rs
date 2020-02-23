@@ -20,7 +20,7 @@
 //! # }
 //!
 //! ```
-//! 
+//!
 //! Using the raw interface for setting client descriptions.
 //! ```rust,no_run
 //! use ts3_query::*;
@@ -38,7 +38,7 @@
 //! );
 //! // we don't expect any value returned
 //! let _ = client.raw_command(&cmd)?;
-//! 
+//!
 //! client.logout()?;
 //! # Ok(())
 //! # }
@@ -72,7 +72,7 @@ pub enum Ts3Error {
     #[snafu(display("Received invalid response: {}", data))]
     InvalidResponse { context: &'static str, data: String },
     /// TS3-Server error response
-    #[snafu(display("Server error: {}", response))]
+    #[snafu(display("Server responded with error: {}", response))]
     ServerError { response: ErrorResponse },
     /// Maximum amount of response lines reached, DDOS limit prevented further data read.
     ///
@@ -81,14 +81,22 @@ pub enum Ts3Error {
     ResponseLimit { response: Vec<String> },
 }
 
-// impl Ts3Error {
-//     pub fn is_connection_error(&self) -> bool {
-//         match self {
-//             Io(_) => true,
-//             _ => false,
-//         }
-//     }
-// }
+impl Ts3Error {
+    /// Returns true if the error is of kind ServerError
+    pub fn is_error_response(&self) -> bool {
+        match self {
+            Ts3Error::ServerError { .. } => true,
+            _ => false,
+        }
+    }
+    /// Returns the [`ErrorResponse`](ErrorResponse) if existing.
+    pub fn error_response(&self) -> Option<&ErrorResponse> {
+        match self {
+            Ts3Error::ServerError { response } => Some(response),
+            _ => None,
+        }
+    }
+}
 
 impl From<io::Error> for Ts3Error {
     fn from(error: io::Error) -> Self {
@@ -200,7 +208,7 @@ impl QueryClient {
         Ok((reader, stream))
     }
 
-    /// Perform a raw command, returns its response
+    /// Perform a raw command, returns its response as raw value. (No unescaping is performed.)
     ///
     /// You need to escape the command properly.
     pub fn raw_command(&mut self, command: &str) -> Result<Vec<String>> {
@@ -211,7 +219,7 @@ impl QueryClient {
 
     /// Performs whoami
     ///
-    /// Returns a hashmap of entries
+    /// Returns a hashmap of entries, with possibly escaped values.
     pub fn whoami(&mut self) -> Result<HashMap<String, String>> {
         writeln!(&mut self.tx, "whoami")?;
         let v = self.read_response()?;
@@ -339,10 +347,11 @@ impl QueryClient {
         }
     }
 
-    /// Read response and check for error
+    /// Read response and check error line
     fn read_response(&mut self) -> Result<Vec<String>> {
         let mut result: Vec<String> = Vec::new();
         for _ in 0..MAX_TRIES {
+            // good guess..
             let mut buffer = Vec::with_capacity(20);
             //  line ending
             while {
@@ -352,7 +361,7 @@ impl QueryClient {
                 // check for exact ''
                 buffer.get(buffer.len() - 2).map_or(true, |v| *v != b'\n')
             } {}
-            // remove
+            // remove \n\r
             buffer.pop();
             buffer.pop();
 
