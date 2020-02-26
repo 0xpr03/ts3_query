@@ -50,6 +50,7 @@ use std::io::{self, BufRead, BufReader, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::string::FromUtf8Error;
 use std::time::Duration;
+use std::fmt::Write as FmtWrite;
 
 pub mod raw;
 use raw::*;
@@ -344,21 +345,19 @@ impl QueryClient {
         Ok(())
     }
 
-    /// Turn a list of
+    /// Turn a list of client-db-ids into a list of cldbid=X
     fn format_cldbids(it: &[usize]) -> String {
-        // it.iter().format_with("|", |x, f| f(&format_args!("cldbid={}", x))).to_string()
-        let mut res: Vec<u8> = Vec::new();
+        // would need itertools for format_with
+
+        let mut res = String::new();
         let mut it = it.iter();
         if let Some(n) = it.next() {
-            writeln!(res, "cldbid={}", n).unwrap();
+            write!(res, "cldbid={}", n).unwrap();
         }
         for n in it {
-            writeln!(res, "|cldbid={}", n).unwrap();
+            write!(res, "|cldbid={}", n).unwrap();
         }
-        unsafe {
-            // we know this is utf8 as we only added utf8 strings using fmt
-            String::from_utf8_unchecked(res)
-        }
+        res
     }
 
     /// Read response and check error line
@@ -457,5 +456,18 @@ impl QueryClient {
             context: "expected id and msg, got ",
             data: msg.to_string(),
         })
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn test_format_cldbids() {
+        let ids = vec![0,1,2,3];
+        assert_eq!("cldbid=0|cldbid=1|cldbid=2|cldbid=3",QueryClient::format_cldbids(&ids));
+        assert_eq!("",QueryClient::format_cldbids(&[]));
+        assert_eq!("cldbid=0",QueryClient::format_cldbids(&ids[0..1]));
     }
 }
