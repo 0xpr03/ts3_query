@@ -388,7 +388,7 @@ impl QueryClient {
         Err(Ts3Error::ResponseLimit { response: result })
     }
 
-    /// Get all client database IDs for a given server group ID
+    /// Get a list of client-DB-IDs for a given server group ID
     ///
     /// See servergroupclientlist
     pub fn get_servergroup_client_list(&mut self, server_group: usize) -> Result<Vec<usize>> {
