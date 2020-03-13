@@ -44,7 +44,7 @@
 //! # }
 //!
 //! ```
-use snafu::{ResultExt, Snafu};
+use snafu::{ResultExt, Snafu, Backtrace};
 use std::collections::HashMap;
 use std::io::{self, BufRead, BufReader, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
@@ -74,12 +74,12 @@ pub enum Ts3Error {
     InvalidResponse { context: &'static str, data: String },
     /// TS3-Server error response
     #[snafu(display("Server responded with error: {}", response))]
-    ServerError { response: ErrorResponse },
+    ServerError { response: ErrorResponse, backtrace: Backtrace },
     /// Maximum amount of response lines reached, DDOS limit prevented further data read.
     ///
     /// This will probably cause the current connection to become invalid due to remaining data in the connection.
     #[snafu(display("Invalid response, too many lines, DDOS limit reached: {:?}", response))]
-    ResponseLimit { response: Vec<String> },
+    ResponseLimit { response: Vec<String>, backtrace: Backtrace },
 }
 
 impl Ts3Error {
@@ -93,7 +93,7 @@ impl Ts3Error {
     /// Returns the [`ErrorResponse`](ErrorResponse) if existing.
     pub fn error_response(&self) -> Option<&ErrorResponse> {
         match self {
-            Ts3Error::ServerError { response } => Some(response),
+            Ts3Error::ServerError { response,backtrace: _} => Some(response),
             _ => None,
         }
     }
@@ -385,7 +385,7 @@ impl QueryClient {
             }
             result.push(buffer);
         }
-        Err(Ts3Error::ResponseLimit { response: result })
+        ResponseLimit{ response: result }.fail()
     }
 
     /// Get a list of client-DB-IDs for a given server group ID
@@ -441,12 +441,12 @@ impl QueryClient {
                     data: msg.to_string(),
                 })?;
                 if id != 0 {
-                    return Err(Ts3Error::ServerError {
+                    return ServerError {
                         response: ErrorResponse {
                             id,
                             msg: unescape_val(*msg),
                         },
-                    });
+                    }.fail();
                 } else {
                     return Ok(());
                 }

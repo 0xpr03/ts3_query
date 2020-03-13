@@ -1,6 +1,6 @@
 [package]
 name = "ts3-query"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["Aron Heinecke <aron.heinecke@t-online.de>"]
 edition = "2018"
 keywords = ["ts3","query","teamspeak3"]
@@ -10,5 +10,8 @@ license = "MIT/Apache-2.0"
 categories = ["api-bindings"]
 readme = "README.md"
 
+[features]
+backtrace = ["snafu/backtraces"]
+
 [dependencies]
-snafu = { version = "0.5" }
+snafu = { version = "0.6" }

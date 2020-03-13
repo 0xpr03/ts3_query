@@ -1,3 +1,7 @@
+### 0.1.5
+- Upgrade snafu to 0.6
+- Use backtraces in errors, can be enabled using `ts3-query = { features = "backtrace" }`
+
 ### 0.1.4
 - Add `raw::parse_multi_hashmap` to handle `clientlist` like commands.
 - Add testing for hashmap parsers.
