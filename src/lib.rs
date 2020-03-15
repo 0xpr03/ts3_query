@@ -44,7 +44,7 @@
 //! # }
 //!
 //! ```
-use snafu::{Backtrace, ResultExt, Snafu};
+use snafu::{Backtrace, OptionExt, ResultExt, Snafu};
 use std::collections::HashMap;
 use std::fmt::Write as FmtWrite;
 use std::io::{self, BufRead, BufReader, Write};
@@ -69,6 +69,8 @@ pub enum Ts3Error {
         context: &'static str,
         source: io::Error,
     },
+    #[snafu(display("No valid socket address provided."))]
+    InvalidSocketAddress { backtrace: Backtrace },
     /// Invalid response error. Server returned unexpected data.
     #[snafu(display("Received invalid response: {}", data))]
     InvalidResponse { context: &'static str, data: String },
@@ -152,7 +154,20 @@ impl Drop for QueryClient {
 impl QueryClient {
     /// Create new query connection
     pub fn new<A: ToSocketAddrs>(addr: A) -> Result<Self> {
-        let (rx, tx) = Self::new_inner(addr)?;
+        let (rx, tx) = Self::new_inner(addr, None, None)?;
+
+        Ok(Self { rx, tx })
+    }
+
+    /// Create new query connection with specific timeout settings
+    ///
+    /// Timeout is read/write timeout, t_connect: timeout for connecting.
+    pub fn with_timeout<A: ToSocketAddrs>(
+        addr: A,
+        t_connect: Option<Duration>,
+        timeout: Option<Duration>,
+    ) -> Result<Self> {
+        let (rx, tx) = Self::new_inner(addr, timeout, t_connect)?;
 
         Ok(Self { rx, tx })
     }
@@ -185,21 +200,37 @@ impl QueryClient {
     }
 
     /// Inner new-function that handles greeting etc
-    fn new_inner<A: ToSocketAddrs>(addr: A) -> Result<(BufReader<TcpStream>, TcpStream)> {
-        let stream = TcpStream::connect(addr).context(Io {
-            context: "while connecting: ",
+    fn new_inner<A: ToSocketAddrs>(
+        addr: A,
+        timeout: Option<Duration>,
+        conn_timeout: Option<Duration>,
+    ) -> Result<(BufReader<TcpStream>, TcpStream)> {
+        let addr = addr
+            .to_socket_addrs()
+            .context(Io {
+                context: "invalid socket address",
+            })?
+            .next()
+            .context(InvalidSocketAddress {})?;
+        let stream = if let Some(dur) = conn_timeout {
+            let stream = TcpStream::connect_timeout(&addr, dur).context(Io {
+                context: "while connecting: ",
+            })?;
+
+            stream
+        } else {
+            TcpStream::connect(addr).context(Io {
+                context: "while connecting: ",
+            })?
+        };
+
+        stream.set_write_timeout(timeout).context(Io {
+            context: "setting write timeout: ",
+        })?;
+        stream.set_read_timeout(timeout).context(Io {
+            context: "setting read timeout: ",
         })?;
 
-        stream
-            .set_write_timeout(Some(Duration::new(5, 0)))
-            .context(Io {
-                context: "setting write timeout: ",
-            })?;
-        stream
-            .set_read_timeout(Some(Duration::new(5, 0)))
-            .context(Io {
-                context: "setting read timeout: ",
-            })?;
         stream.set_nodelay(true).context(Io {
             context: "setting nodelay: ",
         })?;
@@ -215,12 +246,6 @@ impl QueryClient {
         })?;
         println!("{:?}", buffer);
 
-        // lower timeout for garbage welcome
-        stream
-            .set_read_timeout(Some(Duration::new(0, 500)))
-            .context(Io {
-                context: "setting read timeout: ",
-            })?;
         buffer.clear();
         if let Err(e) = reader.read_until(b'\r', &mut buffer) {
             use std::io::ErrorKind::*;
@@ -229,13 +254,6 @@ impl QueryClient {
                 _ => return Err(e.into()),
             }
         }
-
-        // set timeout back to normal
-        stream
-            .set_read_timeout(Some(Duration::new(20, 0)))
-            .context(Io {
-                context: "setting read timeout: ",
-            })?;
 
         Ok((reader, stream))
     }

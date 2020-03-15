@@ -1,4 +1,5 @@
 ### 0.1.5
+- Add new with_timeout constructor allowing to define connection/runtime timeouts
 - Upgrade snafu to 0.6
 - Use backtraces in errors, can be enabled using `ts3-query = { features = "backtrace" }`
 
