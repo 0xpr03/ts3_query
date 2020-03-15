@@ -44,13 +44,13 @@
 //! # }
 //!
 //! ```
-use snafu::{ResultExt, Snafu, Backtrace};
+use snafu::{Backtrace, ResultExt, Snafu};
 use std::collections::HashMap;
+use std::fmt::Write as FmtWrite;
 use std::io::{self, BufRead, BufReader, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::string::FromUtf8Error;
 use std::time::Duration;
-use std::fmt::Write as FmtWrite;
 
 pub mod raw;
 use raw::*;
@@ -74,12 +74,18 @@ pub enum Ts3Error {
     InvalidResponse { context: &'static str, data: String },
     /// TS3-Server error response
     #[snafu(display("Server responded with error: {}", response))]
-    ServerError { response: ErrorResponse, backtrace: Backtrace },
+    ServerError {
+        response: ErrorResponse,
+        backtrace: Backtrace,
+    },
     /// Maximum amount of response lines reached, DDOS limit prevented further data read.
     ///
     /// This will probably cause the current connection to become invalid due to remaining data in the connection.
     #[snafu(display("Invalid response, too many lines, DDOS limit reached: {:?}", response))]
-    ResponseLimit { response: Vec<String>, backtrace: Backtrace },
+    ResponseLimit {
+        response: Vec<String>,
+        backtrace: Backtrace,
+    },
 }
 
 impl Ts3Error {
@@ -93,7 +99,10 @@ impl Ts3Error {
     /// Returns the [`ErrorResponse`](ErrorResponse) if existing.
     pub fn error_response(&self) -> Option<&ErrorResponse> {
         match self {
-            Ts3Error::ServerError { response,backtrace: _} => Some(response),
+            Ts3Error::ServerError {
+                response,
+                backtrace: _,
+            } => Some(response),
             _ => None,
         }
     }
@@ -150,14 +159,22 @@ impl QueryClient {
 
     /// Rename this client, performs `clientupdate client_nickname` escaping the name
     pub fn rename(&mut self, name: &str) -> Result<()> {
-        writeln!(&mut self.tx, "clientupdate client_nickname={}",escape_arg(name))?;
+        writeln!(
+            &mut self.tx,
+            "clientupdate client_nickname={}",
+            escape_arg(name)
+        )?;
         let _ = self.read_response()?;
         Ok(())
     }
 
     /// Update this clients description
     pub fn update_description(&mut self, descr: &str) -> Result<()> {
-        write!(&mut self.tx,"clientupdate CLIENT_DESCRIPTION={}",escape_arg(descr))?;
+        write!(
+            &mut self.tx,
+            "clientupdate CLIENT_DESCRIPTION={}",
+            escape_arg(descr)
+        )?;
         let _ = self.read_response()?;
         Ok(())
     }
@@ -385,7 +402,7 @@ impl QueryClient {
             }
             result.push(buffer);
         }
-        ResponseLimit{ response: result }.fail()
+        ResponseLimit { response: result }.fail()
     }
 
     /// Get a list of client-DB-IDs for a given server group ID
@@ -446,7 +463,8 @@ impl QueryClient {
                             id,
                             msg: unescape_val(*msg),
                         },
-                    }.fail();
+                    }
+                    .fail();
                 } else {
                     return Ok(());
                 }
@@ -459,15 +477,17 @@ impl QueryClient {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;
     #[test]
     fn test_format_cldbids() {
-        let ids = vec![0,1,2,3];
-        assert_eq!("cldbid=0|cldbid=1|cldbid=2|cldbid=3",QueryClient::format_cldbids(&ids));
-        assert_eq!("",QueryClient::format_cldbids(&[]));
-        assert_eq!("cldbid=0",QueryClient::format_cldbids(&ids[0..1]));
+        let ids = vec![0, 1, 2, 3];
+        assert_eq!(
+            "cldbid=0|cldbid=1|cldbid=2|cldbid=3",
+            QueryClient::format_cldbids(&ids)
+        );
+        assert_eq!("", QueryClient::format_cldbids(&[]));
+        assert_eq!("cldbid=0", QueryClient::format_cldbids(&ids[0..1]));
     }
 }
