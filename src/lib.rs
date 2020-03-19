@@ -102,8 +102,7 @@ impl Ts3Error {
     pub fn error_response(&self) -> Option<&ErrorResponse> {
         match self {
             Ts3Error::ServerError {
-                response,
-                backtrace: _,
+                response, ..
             } => Some(response),
             _ => None,
         }
@@ -213,11 +212,9 @@ impl QueryClient {
             .next()
             .context(InvalidSocketAddress {})?;
         let stream = if let Some(dur) = conn_timeout {
-            let stream = TcpStream::connect_timeout(&addr, dur).context(Io {
+            TcpStream::connect_timeout(&addr, dur).context(Io {
                 context: "while connecting: ",
-            })?;
-
-            stream
+            })?
         } else {
             TcpStream::connect(addr).context(Io {
                 context: "while connecting: ",
@@ -473,7 +470,7 @@ impl QueryClient {
             if let (Some(id), Some(msg)) = (split_id.get(1), split_msg.get(1)) {
                 let id = id.parse::<usize>().map_err(|_| Ts3Error::InvalidResponse {
                     context: "expected usize, got ",
-                    data: msg.to_string(),
+                    data: (*msg).to_string(),
                 })?;
                 if id != 0 {
                     return ServerError {

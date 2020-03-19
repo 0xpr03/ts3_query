@@ -39,7 +39,7 @@ pub fn parse_multi_hashmap(input: Vec<String>, unescape: bool) -> Vec<HashMap<St
     let v: Vec<HashMap<String, String>> = input
         .into_iter()
         .map(|l| {
-            l.split("|")
+            l.split('|')
                 .map(|s| {
                     let mut map = HashMap::new();
                     parse_single_line_hashmap(s, &mut map, unescape);
