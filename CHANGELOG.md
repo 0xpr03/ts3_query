@@ -5,6 +5,9 @@
 - Accept &str/String/&String in raw escape helpers
 - *Breaking*: `whoami` takes a paramter for unescaping all values
 
+### 0.1.5
+- Remove println on QueryClient::new, sorry
+
 ### 0.1.4
 - Add `raw::parse_multi_hashmap` to handle `clientlist` like commands.
 - Add testing for hashmap parsers.

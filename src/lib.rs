@@ -241,7 +241,6 @@ impl QueryClient {
         reader.read_until(b'\r', &mut buffer).context(Io {
             context: "reading response: ",
         })?;
-        println!("{:?}", buffer);
 
         buffer.clear();
         if let Err(e) = reader.read_until(b'\r', &mut buffer) {
