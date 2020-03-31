@@ -196,7 +196,6 @@ impl QueryClient {
         reader.read_until(b'\r', &mut buffer).context(Io {
             context: "reading response: ",
         })?;
-        println!("{:?}", buffer);
 
         // lower timeout for garbage welcome
         stream

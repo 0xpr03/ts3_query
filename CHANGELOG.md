@@ -1,3 +1,6 @@
+### 0.1.5
+- Remove println on QueryClient::new, sorry
+
 ### 0.1.4
 - Add `raw::parse_multi_hashmap` to handle `clientlist` like commands.
 - Add testing for hashmap parsers.
