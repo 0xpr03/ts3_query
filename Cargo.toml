@@ -1,6 +1,6 @@
 [package]
 name = "ts3-query"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["Aron Heinecke <aron.heinecke@t-online.de>"]
 edition = "2018"
 keywords = ["ts3","query","teamspeak3"]
