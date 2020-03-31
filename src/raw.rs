@@ -53,16 +53,16 @@ pub fn parse_multi_hashmap(input: Vec<String>, unescape: bool) -> Vec<HashMap<St
 }
 
 /// Escape string for query commands send via raw function
-pub fn escape_arg(input: &str) -> String {
-    let res: Vec<u8> = Escape::new(input.bytes()).collect();
+pub fn escape_arg<T: AsRef<str>>(input: T) -> String {
+    let res: Vec<u8> = Escape::new(input.as_ref().bytes()).collect();
     String::from_utf8(res).unwrap()
 }
 
 /// Unescape server response
-pub fn unescape_val(it: &str) -> String {
+pub fn unescape_val<T: AsRef<str>>(it: T) -> String {
     let mut res: Vec<u8> = Vec::new();
     let mut escaped = false;
-    for n in it.as_bytes().iter() {
+    for n in it.as_ref().as_bytes().iter() {
         if !escaped && *n == b'\\' {
             escaped = true;
         } else if escaped {

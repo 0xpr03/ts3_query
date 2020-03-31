@@ -129,7 +129,7 @@ pub struct ErrorResponse {
 
 impl std::fmt::Display for ErrorResponse {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Error code {}, msg:{}", self.id, self.msg)
+        writeln!(f, "Error code {}, msg: {}", self.id, self.msg)
     }
 }
 
@@ -158,9 +158,9 @@ impl QueryClient {
         Ok(Self { rx, tx })
     }
 
-    /// Create new query connection with specific timeout settings
+    /// Create new query connection with timeouts
     ///
-    /// Timeout is read/write timeout, t_connect: timeout for connecting.
+    /// `t_connect` is used for connection, `timeout` for read/write operations
     pub fn with_timeout<A: ToSocketAddrs>(
         addr: A,
         t_connect: Option<Duration>,
@@ -266,11 +266,11 @@ impl QueryClient {
 
     /// Performs whoami
     ///
-    /// Returns a hashmap of entries, with possibly escaped values.
-    pub fn whoami(&mut self) -> Result<HashMap<String, String>> {
+    /// Returns a hashmap of entries. Values are unescaped if set.
+    pub fn whoami(&mut self, unescape: bool) -> Result<HashMap<String, String>> {
         writeln!(&mut self.tx, "whoami")?;
         let v = self.read_response()?;
-        Ok(parse_hashmap(v, false))
+        Ok(parse_hashmap(v, unescape))
     }
 
     /// Logout
@@ -470,7 +470,7 @@ impl QueryClient {
             if let (Some(id), Some(msg)) = (split_id.get(1), split_msg.get(1)) {
                 let id = id.parse::<usize>().map_err(|_| Ts3Error::InvalidResponse {
                     context: "expected usize, got ",
-                    data: (*msg).to_string(),
+                    data: (*msg).to_string(), // clippy lint
                 })?;
                 if id != 0 {
                     return ServerError {

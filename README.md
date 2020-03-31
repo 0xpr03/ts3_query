@@ -8,4 +8,4 @@ Very barebone lib to connect to ts3 query interfaces and issue commands.
 
 For examples visit the docs.
 
-A lot of functions are currently not implemented, feel free to open issues or PRs adding them. (You can use the raw_command method along with its helpers to issue not implemented commands.) Any callback functionality for server events is also missing.
+A lot of command-functions are currently not implemented, feel free to open issues or PRs adding them. (You can use the raw_command method along with its helpers to issue not implemented commands.) Any callback functionality for server events is also missing.
