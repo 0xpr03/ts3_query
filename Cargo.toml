@@ -12,6 +12,7 @@ readme = "README.md"
 
 [features]
 backtrace = ["snafu/backtraces"]
+debug_response = []
 
 [dependencies]
 snafu = { version = "0.6" }

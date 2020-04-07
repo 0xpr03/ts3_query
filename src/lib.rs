@@ -46,13 +46,14 @@
 //! ```
 use snafu::{Backtrace, OptionExt, ResultExt, Snafu};
 use std::collections::HashMap;
-use std::fmt::Write as FmtWrite;
+use std::fmt::{Debug, Write as FmtWrite};
 use std::io::{self, BufRead, BufReader, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::string::FromUtf8Error;
 use std::time::Duration;
 
 pub mod raw;
+use io::Read;
 use raw::*;
 
 #[derive(Snafu, Debug)]
@@ -69,21 +70,30 @@ pub enum Ts3Error {
         context: &'static str,
         source: io::Error,
     },
+    /// Reached EOF reading response, server closed connection / timeout.
+    #[snafu(display("IO Error: Connection closed"))]
+    ConnectionClosed { backtrace: Backtrace },
     #[snafu(display("No valid socket address provided."))]
     InvalidSocketAddress { backtrace: Backtrace },
     /// Invalid response error. Server returned unexpected data.
-    #[snafu(display("Received invalid response: {}", data))]
-    InvalidResponse { context: &'static str, data: String },
+    #[snafu(display("Received invalid response, {}{:?}", context, data))]
+    InvalidResponse {
+        /// Context of action, empty per default.
+        ///
+        /// Please use a format like `"expected XY, got: "`
+        context: &'static str,
+        data: String,
+    },
     /// TS3-Server error response
     #[snafu(display("Server responded with error: {}", response))]
     ServerError {
         response: ErrorResponse,
         backtrace: Backtrace,
     },
-    /// Maximum amount of response lines reached, DDOS limit prevented further data read.
+    /// Maximum amount of response bytes/lines reached, DDOS limit prevented further data read.
     ///
     /// This will probably cause the current connection to become invalid due to remaining data in the connection.
-    #[snafu(display("Invalid response, too many lines, DDOS limit reached: {:?}", response))]
+    #[snafu(display("Invalid response, DDOS limit reached: {:?}", response))]
     ResponseLimit {
         response: Vec<String>,
         backtrace: Backtrace,
@@ -101,9 +111,7 @@ impl Ts3Error {
     /// Returns the [`ErrorResponse`](ErrorResponse) if existing.
     pub fn error_response(&self) -> Option<&ErrorResponse> {
         match self {
-            Ts3Error::ServerError {
-                response, ..
-            } => Some(response),
+            Ts3Error::ServerError { response, .. } => Some(response),
             _ => None,
         }
     }
@@ -137,9 +145,12 @@ impl std::fmt::Display for ErrorResponse {
 pub struct QueryClient {
     rx: BufReader<TcpStream>,
     tx: TcpStream,
+    limit_lines: usize,
+    limit_lines_bytes: u64,
 }
 
-const MAX_TRIES: usize = 100;
+const LIMIT_READ_LINES: usize = 100;
+const LIMIT_LINE_BYTES: u64 = 64_000;
 
 type Result<T> = ::std::result::Result<T, Ts3Error>;
 
@@ -155,7 +166,7 @@ impl QueryClient {
     pub fn new<A: ToSocketAddrs>(addr: A) -> Result<Self> {
         let (rx, tx) = Self::new_inner(addr, None, None)?;
 
-        Ok(Self { rx, tx })
+        Ok(Self { rx, tx, limit_lines: LIMIT_READ_LINES ,limit_lines_bytes: LIMIT_LINE_BYTES })
     }
 
     /// Create new query connection with timeouts
@@ -168,7 +179,17 @@ impl QueryClient {
     ) -> Result<Self> {
         let (rx, tx) = Self::new_inner(addr, timeout, t_connect)?;
 
-        Ok(Self { rx, tx })
+        Ok(Self { rx, tx, limit_lines: LIMIT_READ_LINES ,limit_lines_bytes: LIMIT_LINE_BYTES })
+    }
+
+    /// Set new maximum amount of lines to read per response, until DoS protection triggers.
+    pub fn limit_lines(&mut self, limit: usize) {
+        self.limit_lines = limit;
+    }
+
+    /// Set new maximum amount of bytes per line to read until DoS protection triggers.
+    pub fn limit_line_bytes(&mut self, limit: u64) {
+        self.limit_lines_bytes = limit;
     }
 
     /// Rename this client, performs `clientupdate client_nickname` escaping the name
@@ -394,27 +415,43 @@ impl QueryClient {
     /// Read response and check error line
     fn read_response(&mut self) -> Result<Vec<String>> {
         let mut result: Vec<String> = Vec::new();
-        for _ in 0..MAX_TRIES {
-            // good guess..
-            let mut buffer = Vec::with_capacity(20);
-            //  line ending
-            while {
-                self.rx.read_until(b'\r', &mut buffer).context(Io {
-                    context: "reading response: ",
-                })?;
-                // check for exact ''
-                buffer.get(buffer.len() - 2).map_or(true, |v| *v != b'\n')
-            } {}
-            // remove \n\r
-            buffer.pop();
-            buffer.pop();
-
-            let buffer = String::from_utf8(buffer).context(Utf8Error)?;
-            if buffer.starts_with("error ") {
-                Self::check_ok(&buffer)?;
-                return Ok(result);
+        let mut lr = (&mut self.rx).take(self.limit_lines_bytes);
+        for _ in 0..self.limit_lines {
+            let mut buffer = Vec::new();
+            // damn cargo fmt..
+            if lr.read_until(b'\r', &mut buffer).context(Io {
+                context: "reading response: ",
+            })? == 0
+            {
+                return ConnectionClosed {}.fail();
             }
-            result.push(buffer);
+            // we read until \r or max-read limit
+            if buffer.ends_with(&[b'\r']) {
+                buffer.pop();
+                if buffer.ends_with(&[b'\n']) {
+                    buffer.pop();
+                }
+            } else if lr.limit() == 0 {
+                return ResponseLimit { response: result }.fail();
+            } else {
+                return InvalidResponse {
+                    context: "expected \\r delimiter, got: ",
+                    data: String::from_utf8_lossy(&buffer),
+                }
+                .fail();
+            }
+
+            if buffer.len() > 0 {
+                let line = String::from_utf8(buffer).context(Utf8Error)?;
+                #[cfg(feature = "debug_response")]
+                println!("Read: {:?}", &line);
+                if line.starts_with("error ") {
+                    Self::check_ok(&line)?;
+                    return Ok(result);
+                }
+                result.push(line);
+            }
+            lr.set_limit(LIMIT_LINE_BYTES);
         }
         ResponseLimit { response: result }.fail()
     }

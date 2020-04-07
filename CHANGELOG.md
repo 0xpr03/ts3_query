@@ -1,4 +1,5 @@
-### 0.1.6
+### 0.2.0
+- Fix underflow on read of closed connection. This comes with an adjustable bytes-per-line limit.
 - Add new with_timeout constructor allowing to define connection/runtime timeouts
 - Upgrade snafu to 0.6
 - Use backtraces in errors, can be enabled using `ts3-query = { features = "backtrace" }`
