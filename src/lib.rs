@@ -166,7 +166,12 @@ impl QueryClient {
     pub fn new<A: ToSocketAddrs>(addr: A) -> Result<Self> {
         let (rx, tx) = Self::new_inner(addr, None, None)?;
 
-        Ok(Self { rx, tx, limit_lines: LIMIT_READ_LINES ,limit_lines_bytes: LIMIT_LINE_BYTES })
+        Ok(Self {
+            rx,
+            tx,
+            limit_lines: LIMIT_READ_LINES,
+            limit_lines_bytes: LIMIT_LINE_BYTES,
+        })
     }
 
     /// Create new query connection with timeouts
@@ -179,7 +184,12 @@ impl QueryClient {
     ) -> Result<Self> {
         let (rx, tx) = Self::new_inner(addr, timeout, t_connect)?;
 
-        Ok(Self { rx, tx, limit_lines: LIMIT_READ_LINES ,limit_lines_bytes: LIMIT_LINE_BYTES })
+        Ok(Self {
+            rx,
+            tx,
+            limit_lines: LIMIT_READ_LINES,
+            limit_lines_bytes: LIMIT_LINE_BYTES,
+        })
     }
 
     /// Set new maximum amount of lines to read per response, until DoS protection triggers.
