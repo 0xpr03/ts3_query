@@ -1,3 +1,7 @@
+### 0.2.1
+- Add raw interface example for client name retrieval
+- Fix crates.io category to include teamspeak
+
 ### 0.2.0
 - Fix underflow on read of closed connection. This comes with an adjustable bytes-per-line limit.
 - Add new with_timeout constructor allowing to define connection/runtime timeouts

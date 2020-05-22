@@ -42,7 +42,30 @@
 //! client.logout()?;
 //! # Ok(())
 //! # }
+//! ```
 //!
+//! Raw interface example retrieving online client names
+//! ```rust,no_run
+//! use ts3_query::*;
+//! use std::collections::HashSet;
+//! 
+//! # fn main() -> Result<(),Ts3Error> {
+//! let mut client = QueryClient::new("localhost:10011")?;
+//! 
+//! client.login("serveradmin", "password")?;
+//! client.select_server_by_port(9987)?;
+//! 
+//! let res = raw::parse_multi_hashmap(client.raw_command("clientlist")?, false);
+//! let names = res
+//!     .into_iter()
+//!     .map(|e| e.get("client_nickname").map(raw::unescape_val)
+//!      // may want to catch this in a real application
+//!         .unwrap())
+//!     .collect::<HashSet<String>>();
+//! println!("{:?}",names);
+//! client.logout()?;
+//! # Ok(())
+//! # }
 //! ```
 use snafu::{Backtrace, OptionExt, ResultExt, Snafu};
 use std::collections::HashMap;
