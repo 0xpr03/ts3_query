@@ -48,13 +48,13 @@
 //! ```rust,no_run
 //! use ts3_query::*;
 //! use std::collections::HashSet;
-//! 
+//!
 //! # fn main() -> Result<(),Ts3Error> {
 //! let mut client = QueryClient::new("localhost:10011")?;
-//! 
+//!
 //! client.login("serveradmin", "password")?;
 //! client.select_server_by_port(9987)?;
-//! 
+//!
 //! let res = raw::parse_multi_hashmap(client.raw_command("clientlist")?, false);
 //! let names = res
 //!     .into_iter()
@@ -75,6 +75,8 @@ use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::string::FromUtf8Error;
 use std::time::Duration;
 
+#[cfg(feature = "managed")]
+pub mod managed;
 pub mod raw;
 use io::Read;
 use raw::*;
@@ -107,6 +109,13 @@ pub enum Ts3Error {
         context: &'static str,
         data: String,
     },
+    #[cfg(feature = "managed")]
+    #[snafu(display("Got invalid int response {}: {}", data, source))]
+    InvalidIntResponse {
+        data: String,
+        source: std::num::ParseIntError,
+        backtrace: Backtrace,
+    },
     /// TS3-Server error response
     #[snafu(display("Server responded with error: {}", response))]
     ServerError {
@@ -119,6 +128,16 @@ pub enum Ts3Error {
     #[snafu(display("Invalid response, DDOS limit reached: {:?}", response))]
     ResponseLimit {
         response: Vec<String>,
+        backtrace: Backtrace,
+    },
+    /// Invalid name length. Client-Name is longer than allowed!
+    #[cfg(feature = "managed")]
+    #[snafu(display("Invalid name length: {} max: {}!", length, expected))]
+    InvalidNameLength { length: usize, expected: usize },
+    /// No client ID found!
+    #[snafu(display("Expected entry for key {}, found none!", key))]
+    NoValueResponse {
+        key: &'static str,
         backtrace: Backtrace,
     },
 }

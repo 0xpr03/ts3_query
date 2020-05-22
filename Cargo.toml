@@ -12,6 +12,7 @@ readme = "README.md"
 
 [features]
 backtrace = ["snafu/backtraces"]
+managed = []
 debug_response = []
 
 [dependencies]
