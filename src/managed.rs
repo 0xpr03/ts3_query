@@ -21,7 +21,8 @@ use ::std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use snafu::{OptionExt, ResultExt};
 
 const ERR_NAME_TAKEN: usize = 513;
-const MAX_LEN_NAME: usize = 20;
+/// Max name length to allow unique names
+pub const MAX_LEN_NAME: usize = 20;
 
 /// Default connection timeout
 pub const DEFAULT_TIMEOUT_CONN: Duration = Duration::from_millis(1500);
@@ -78,7 +79,12 @@ impl ManagedConfig {
         })
     }
 
-    /// Set name of client for connection
+    /// Set name of client for connection  
+    /// All names have to be shorter than MAX_LEN_NAME.
+    /// This is required as you always have to leave enough space for teamspeak
+    /// to allow appending a unique number. Otherwise connections will fail
+    /// if the name is already claimed and too long to be made unique.  
+    /// This is a limitation of the teamspeak API.
     pub fn name(mut self, name: String) -> Self {
         self.name = Some(name);
         self
