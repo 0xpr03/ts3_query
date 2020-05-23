@@ -1,6 +1,8 @@
 //! Ts3 query library  
 //! Small, bare-metal ts query lib without any callback support currently.
 //!
+//! A connectivity checking wrapper is available under [managed](managed) when enabling its feature.
+//!
 //! # Examples
 //! Simple auth + clients of a server group
 //! ```rust,no_run
@@ -67,6 +69,7 @@
 //! # Ok(())
 //! # }
 //! ```
+#![cfg_attr(docsrs, feature(doc_cfg))]
 use snafu::{Backtrace, OptionExt, ResultExt, Snafu};
 use std::collections::HashMap;
 use std::fmt::{Debug, Write as FmtWrite};
@@ -75,6 +78,7 @@ use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::string::FromUtf8Error;
 use std::time::Duration;
 
+#[cfg_attr(docsrs, doc(cfg(feature = "managed")))]
 #[cfg(feature = "managed")]
 pub mod managed;
 pub mod raw;

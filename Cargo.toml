@@ -17,3 +17,7 @@ debug_response = []
 
 [dependencies]
 snafu = { version = "0.6" }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

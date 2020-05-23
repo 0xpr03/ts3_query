@@ -1,31 +1,47 @@
-// Copyright 2017-2020 Aron Heinecke
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//   http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+//! Managed connection module.  
+//! Handles reconnection and name uniqueness.
+//! Wraps a normal query connection with health checks. Handles renaming and claimed names.
+//! Useful if running long-lasting connections which tend to break over the wire.
+//! ```rust,no_run
+//! use ts3_query::*;
+//! # fn main() -> Result<(),Ts3Error> {
+//! let cfg = managed::ManagedConfig::new("127.0.0.1:10011",9987,"serveradmin".into(),"asdf".into())?
+//!     .name("my bot".to_string());
+//! let mut conn = managed::ManagedConnection::new(cfg)?;
+//! // get inner connection with check for being alive
+//! // then perform a command on it
+//! let _ = conn.get()?.whoami(false)?;
+//! # Ok(())
+//! # }
+//! ```
 
 use crate::*;
 use ::std::net::{SocketAddr, ToSocketAddrs};
 use ::std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use snafu::{OptionExt, ResultExt};
 
-pub const ERR_NAME_TAKEN: usize = 513;
+const ERR_NAME_TAKEN: usize = 513;
 const MAX_LEN_NAME: usize = 20;
 
-// Safety: see module tick interval
-const TIMEOUT_CONN: Duration = Duration::from_millis(1500);
-const TIMEOUT_CMD: Duration = Duration::from_millis(1500);
+/// Default connection timeout
+pub const DEFAULT_TIMEOUT_CONN: Duration = Duration::from_millis(1500);
+/// Default timeout for sending/receiving
+pub const DEFAULT_TIMEOUT_CMD: Duration = Duration::from_millis(1500);
 /// Same as super::CLIENT_CONN_ID, but TS returns a different one on whoami
 const KEY_CLIENT_ID_SELF: &str = "client_id";
 
+/// Config for creating a managed connection
+/// ```rust
+/// # use ts3_query::managed::ManagedConfig;
+/// # use ts3_query::*;
+/// # fn main() -> Result<(),Ts3Error> {
+/// use std::time::Duration;
+/// let cfg = ManagedConfig::new("127.0.0.1:10011",9987,"serveradmin".into(),"asdf".into())?
+/// .name("my test bot".to_string())
+/// .connection_timeout(Duration::from_secs(1))
+/// .timeout(Duration::from_secs(1));
+/// # Ok(()) }
+/// ```
 #[derive(Clone)]
 pub struct ManagedConfig {
     addr: SocketAddr,
@@ -38,7 +54,7 @@ pub struct ManagedConfig {
 }
 
 impl ManagedConfig {
-    /// Create a new ManagedConfig wth default values
+    /// Create a new ManagedConfig with default values
     pub fn new<A: ToSocketAddrs>(
         addr: A,
         server_port: u16,
@@ -57,21 +73,24 @@ impl ManagedConfig {
             password,
             server_port,
             name: Default::default(),
-            conn_timeout: TIMEOUT_CONN,
-            cmd_timeout: TIMEOUT_CMD,
+            conn_timeout: DEFAULT_TIMEOUT_CONN,
+            cmd_timeout: DEFAULT_TIMEOUT_CMD,
         })
     }
 
-    pub fn name(mut self, name: Option<String>) -> Self {
-        self.name = name;
+    /// Set name of client for connection
+    pub fn name(mut self, name: String) -> Self {
+        self.name = Some(name);
         self
     }
 
+    /// Set connection timeout
     pub fn connection_timeout(mut self, timeout: Duration) -> Self {
         self.conn_timeout = timeout;
         self
     }
 
+    /// Set timeout for normal IO
     pub fn timeout(mut self, timeout: Duration) -> Self {
         self.cmd_timeout = timeout;
         self
@@ -165,7 +184,8 @@ impl ManagedConnection {
         })
     }
 
-    /// Try creating a second connection
+    /// Try creating a second connection, based on the configs of this one.
+    /// `new_name` can specifiy a different connection client name.
     pub fn clone(&self, new_name: Option<String>) -> Result<Self> {
         let mut cfg = self.cfg.clone();
         if new_name.is_some() {
@@ -185,14 +205,16 @@ impl ManagedConnection {
         })
     }
 
-    /// Force reconnect
+    /// Force reconnect, may be called if server returns invalid data on call.
+    /// Can happen if for example the firewall just drops packages for some time.
     pub fn force_reconnect(&mut self) -> Result<()> {
         self.conn = Self::connect(&self.cfg)?;
         self.conn_id = None;
         Ok(())
     }
 
-    /// Returns the active connection or tries to create a new one
+    /// Returns the active connection or fallbacks to reconnect
+    /// Checks for connection health every 1 second between a get() call.
     pub fn get(&mut self) -> Result<&mut QueryClient> {
         if self.last_ping.elapsed() < Duration::from_secs(0) {
             return Ok(&mut self.conn);

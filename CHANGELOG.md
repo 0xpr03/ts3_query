@@ -1,3 +1,6 @@
+### 0.2.2
+- Add managed feature and module. Introducing a wrapper for long lived connectons.
+
 ### 0.2.1
 - Add raw interface example for client name retrieval
 - Fix crates.io category to include teamspeak
