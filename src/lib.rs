@@ -283,6 +283,13 @@ impl QueryClient {
         Ok(())
     }
 
+    /// Poke a client.
+    pub fn poke_client(&mut self, client: ClientId, msg: &str) -> Result<()> {
+        writeln!(&mut self.tx, "clientpoke clid={} msg={}", client, msg)?;
+        let _ = self.read_response()?;
+        Ok(())
+    }
+
     /// Send quit command, does not close the socket, not to be exposed
     fn quit(&mut self) {
         let _ = writeln!(&mut self.tx, "quit");

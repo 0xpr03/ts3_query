@@ -1,6 +1,7 @@
 ### 0.3.0
 - Add proper types for channel & servergroup IDs, changes some parameter types
 - Add move_client function
+- Add poke_client function
 
 ### 0.2.3
 - Fix update_description function.
