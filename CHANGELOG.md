@@ -1,3 +1,6 @@
+### 0.3.0
+- Add proper types for channel IDs
+
 ### 0.2.3
 - Fix update_description function.
 

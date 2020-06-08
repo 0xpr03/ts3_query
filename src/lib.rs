@@ -85,6 +85,7 @@ pub mod raw;
 use io::Read;
 use raw::*;
 
+pub type ChannelId = i32;
 #[derive(Snafu, Debug)]
 pub enum Ts3Error {
     /// Error on response conversion with invalid utf8 data
@@ -383,11 +384,11 @@ impl QueryClient {
     /// Create file directory in channel, has to be a valid path starting with `/`
     ///
     /// Performs ftcreatedir
-    pub fn create_dir(&mut self, cid: usize, path: &str) -> Result<()> {
+    pub fn create_dir(&mut self, channel: ChannelId, path: &str) -> Result<()> {
         writeln!(
             &mut self.tx,
             "ftcreatedir cid={} cpw= dirname={}",
-            cid,
+            channel,
             escape_arg(path)
         )?;
         let _ = self.read_response()?;
@@ -399,11 +400,11 @@ impl QueryClient {
     /// Example: `/My Directory` deletes everything inside that directory.
     ///
     /// Performs ftdeletefile
-    pub fn delete_file(&mut self, cid: usize, path: &str) -> Result<()> {
+    pub fn delete_file(&mut self, channel: ChannelId, path: &str) -> Result<()> {
         writeln!(
             &mut self.tx,
             "ftdeletefile cid={} cpw= name={}",
-            cid,
+            channel,
             escape_arg(path)
         )?;
         let _ = self.read_response()?;
