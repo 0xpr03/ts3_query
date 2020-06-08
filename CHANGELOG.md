@@ -1,5 +1,6 @@
 ### 0.3.0
 - Add proper types for channel IDs
+- Add move_client function
 
 ### 0.2.3
 - Fix update_description function.

@@ -86,6 +86,10 @@ use io::Read;
 use raw::*;
 
 pub type ChannelId = i32;
+/// Temporary, per connection ID of a client, reused upon disconnect.  
+/// Not to be confused with a client database, myteamspeak or identity ID.
+pub type ClientId = u16;
+
 #[derive(Snafu, Debug)]
 pub enum Ts3Error {
     /// Error on response conversion with invalid utf8 data
@@ -266,6 +270,15 @@ impl QueryClient {
             &mut self.tx,
             "clientupdate CLIENT_DESCRIPTION={}",
             escape_arg(descr)
+        )?;
+        let _ = self.read_response()?;
+        Ok(())
+    }
+
+    /// Move a client to a channel.
+    pub fn move_client(&mut self, client: ClientId, channel: ChannelId) -> Result<()> {
+        writeln!(&mut self.tx,
+            "clientmove clid={} cid={}",client,channel
         )?;
         let _ = self.read_response()?;
         Ok(())
