@@ -85,6 +85,7 @@ pub mod raw;
 use io::Read;
 use raw::*;
 
+pub type ServerGroupID = i32;
 pub type ChannelId = i32;
 /// Temporary, per connection ID of a client, reused upon disconnect.  
 /// Not to be confused with a client database, myteamspeak or identity ID.
@@ -443,7 +444,7 @@ impl QueryClient {
 
     /// Performs servergroupdelclient  
     /// Removes all client-db-ids in `cldbid` from the specified `group` id.
-    pub fn server_group_del_clients(&mut self, group: usize, cldbid: &[usize]) -> Result<()> {
+    pub fn server_group_del_clients(&mut self, group: ServerGroupID, cldbid: &[usize]) -> Result<()> {
         if cldbid.is_empty() {
             return Ok(());
         }
@@ -459,7 +460,7 @@ impl QueryClient {
 
     /// Performs servergroupaddclient  
     /// Ads all specified `cldbid` clients to `group`.
-    pub fn server_group_add_clients(&mut self, group: usize, cldbid: &[usize]) -> Result<()> {
+    pub fn server_group_add_clients(&mut self, group: ServerGroupID, cldbid: &[usize]) -> Result<()> {
         if cldbid.is_empty() {
             return Ok(());
         }
@@ -531,8 +532,8 @@ impl QueryClient {
     /// Get a list of client-DB-IDs for a given server group ID
     ///
     /// See servergroupclientlist
-    pub fn get_servergroup_client_list(&mut self, server_group: usize) -> Result<Vec<usize>> {
-        writeln!(&mut self.tx, "servergroupclientlist sgid={}", server_group)?;
+    pub fn get_servergroup_client_list(&mut self, group: ServerGroupID) -> Result<Vec<usize>> {
+        writeln!(&mut self.tx, "servergroupclientlist sgid={}", group)?;
 
         let resp = self.read_response()?;
         if let Some(line) = resp.get(0) {

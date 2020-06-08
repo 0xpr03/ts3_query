@@ -1,5 +1,5 @@
 ### 0.3.0
-- Add proper types for channel IDs
+- Add proper types for channel & servergroup IDs, changes some parameter types
 - Add move_client function
 
 ### 0.2.3
