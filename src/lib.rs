@@ -441,7 +441,8 @@ impl QueryClient {
         Ok(())
     }
 
-    /// Performs servergroupdelclient
+    /// Performs servergroupdelclient  
+    /// Removes all client-db-ids in `cldbid` from the specified `group` id.
     pub fn server_group_del_clients(&mut self, group: usize, cldbid: &[usize]) -> Result<()> {
         if cldbid.is_empty() {
             return Ok(());
@@ -456,7 +457,8 @@ impl QueryClient {
         Ok(())
     }
 
-    /// Performs servergroupaddclient
+    /// Performs servergroupaddclient  
+    /// Ads all specified `cldbid` clients to `group`.
     pub fn server_group_add_clients(&mut self, group: usize, cldbid: &[usize]) -> Result<()> {
         if cldbid.is_empty() {
             return Ok(());
