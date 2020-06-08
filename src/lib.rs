@@ -255,7 +255,7 @@ impl QueryClient {
     }
 
     /// Rename this client, performs `clientupdate client_nickname` escaping the name
-    pub fn rename(&mut self, name: &str) -> Result<()> {
+    pub fn rename<T: AsRef<str>>(&mut self, name: T) -> Result<()> {
         writeln!(
             &mut self.tx,
             "clientupdate client_nickname={}",
@@ -266,7 +266,7 @@ impl QueryClient {
     }
 
     /// Update this clients description
-    pub fn update_description(&mut self, descr: &str) -> Result<()> {
+    pub fn update_description<T: AsRef<str>>(&mut self, descr: T) -> Result<()> {
         writeln!(
             &mut self.tx,
             "clientupdate CLIENT_DESCRIPTION={}",
@@ -284,8 +284,8 @@ impl QueryClient {
     }
 
     /// Poke a client.
-    pub fn poke_client(&mut self, client: ClientId, msg: &str) -> Result<()> {
-        writeln!(&mut self.tx, "clientpoke clid={} msg={}", client, msg)?;
+    pub fn poke_client<T: AsRef<str>>(&mut self, client: ClientId, msg: T) -> Result<()> {
+        writeln!(&mut self.tx, "clientpoke clid={} msg={}", client, msg.as_ref())?;
         let _ = self.read_response()?;
         Ok(())
     }
@@ -354,8 +354,8 @@ impl QueryClient {
     /// Perform a raw command, returns its response as raw value. (No unescaping is performed.)
     ///
     /// You need to escape the command properly.
-    pub fn raw_command(&mut self, command: &str) -> Result<Vec<String>> {
-        writeln!(&mut self.tx, "{}", command)?;
+    pub fn raw_command<T: AsRef<str>>(&mut self, command: T) -> Result<Vec<String>> {
+        writeln!(&mut self.tx, "{}", command.as_ref())?;
         let v = self.read_response()?;
         Ok(v)
     }
@@ -379,7 +379,7 @@ impl QueryClient {
     /// Login with provided data
     ///
     /// On drop queryclient issues a logout
-    pub fn login(&mut self, user: &str, password: &str) -> Result<()> {
+    pub fn login<T: AsRef<str>, S: AsRef<str>>(&mut self, user: T, password: S) -> Result<()> {
         writeln!(
             &mut self.tx,
             "login {} {}",
@@ -403,7 +403,7 @@ impl QueryClient {
     /// Create file directory in channel, has to be a valid path starting with `/`
     ///
     /// Performs ftcreatedir
-    pub fn create_dir(&mut self, channel: ChannelId, path: &str) -> Result<()> {
+    pub fn create_dir<T: AsRef<str>>(&mut self, channel: ChannelId, path: T) -> Result<()> {
         writeln!(
             &mut self.tx,
             "ftcreatedir cid={} cpw= dirname={}",
@@ -419,7 +419,7 @@ impl QueryClient {
     /// Example: `/My Directory` deletes everything inside that directory.
     ///
     /// Performs ftdeletefile
-    pub fn delete_file(&mut self, channel: ChannelId, path: &str) -> Result<()> {
+    pub fn delete_file<T: AsRef<str>>(&mut self, channel: ChannelId, path: T) -> Result<()> {
         writeln!(
             &mut self.tx,
             "ftdeletefile cid={} cpw= name={}",

@@ -1,5 +1,6 @@
 ### 0.3.0
 - Add proper types for channel & servergroup IDs, changes some parameter types
+- Accept both String and &str on multiple places
 - Add move_client function
 - Add poke_client function
 
