@@ -108,11 +108,8 @@ pub struct ManagedConnection {
     cfg: ManagedConfig,
     conn: QueryClient,
     last_ping: Instant,
-    conn_id: Option<TsConID>,
+    conn_id: Option<ClientId>,
 }
-
-/// Ts client connection ID
-pub type TsConID = i32;
 
 impl ManagedConnection {
     fn connect(cfg: &ManagedConfig) -> Result<QueryClient> {
@@ -171,7 +168,7 @@ impl ManagedConnection {
     }
 
     /// Returns the current connection id (clid)
-    pub fn conn_id(&mut self) -> Result<TsConID> {
+    pub fn conn_id(&mut self) -> Result<ClientId> {
         Ok(match self.conn_id {
             Some(v) => v,
             None => {
