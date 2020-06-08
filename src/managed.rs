@@ -1,4 +1,4 @@
-//! Managed connection module.  
+//! Managed connection module.
 //! Handles reconnection and name uniqueness.
 //! Wraps a normal query connection with health checks. Handles renaming and claimed names.
 //! Useful if running long-lasting connections which tend to break over the wire.

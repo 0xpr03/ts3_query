@@ -278,9 +278,7 @@ impl QueryClient {
 
     /// Move a client to a channel.
     pub fn move_client(&mut self, client: ClientId, channel: ChannelId) -> Result<()> {
-        writeln!(&mut self.tx,
-            "clientmove clid={} cid={}",client,channel
-        )?;
+        writeln!(&mut self.tx, "clientmove clid={} cid={}", client, channel)?;
         let _ = self.read_response()?;
         Ok(())
     }
@@ -444,7 +442,11 @@ impl QueryClient {
 
     /// Performs servergroupdelclient  
     /// Removes all client-db-ids in `cldbid` from the specified `group` id.
-    pub fn server_group_del_clients(&mut self, group: ServerGroupID, cldbid: &[usize]) -> Result<()> {
+    pub fn server_group_del_clients(
+        &mut self,
+        group: ServerGroupID,
+        cldbid: &[usize],
+    ) -> Result<()> {
         if cldbid.is_empty() {
             return Ok(());
         }
@@ -460,7 +462,11 @@ impl QueryClient {
 
     /// Performs servergroupaddclient  
     /// Ads all specified `cldbid` clients to `group`.
-    pub fn server_group_add_clients(&mut self, group: ServerGroupID, cldbid: &[usize]) -> Result<()> {
+    pub fn server_group_add_clients(
+        &mut self,
+        group: ServerGroupID,
+        cldbid: &[usize],
+    ) -> Result<()> {
         if cldbid.is_empty() {
             return Ok(());
         }
