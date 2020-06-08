@@ -261,7 +261,7 @@ impl QueryClient {
 
     /// Update this clients description
     pub fn update_description(&mut self, descr: &str) -> Result<()> {
-        write!(
+        writeln!(
             &mut self.tx,
             "clientupdate CLIENT_DESCRIPTION={}",
             escape_arg(descr)

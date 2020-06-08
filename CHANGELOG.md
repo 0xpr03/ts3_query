@@ -1,3 +1,6 @@
+### 0.2.3
+- Fix update_description function.
+
 ### 0.2.2
 - Add managed feature and module. Introducing a wrapper for long lived connectons.
 
