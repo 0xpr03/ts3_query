@@ -3,6 +3,7 @@
 - Accept both String and &str on multiple places
 - Add move_client function
 - Add poke_client function
+- Add send_message function
 
 ### 0.2.3
 - Fix update_description function.

@@ -84,12 +84,33 @@ pub mod managed;
 pub mod raw;
 use io::Read;
 use raw::*;
+use std::fmt;
 
 pub type ServerGroupID = i32;
 pub type ChannelId = i32;
 /// Temporary, per connection ID of a client, reused upon disconnect.  
 /// Not to be confused with a client database, myteamspeak or identity ID.
 pub type ClientId = u16;
+
+/// Target for message sending
+pub enum MessageTarget {
+    /// Send to client
+    Client(ClientId),
+    /// Send to channel of this client
+    Channel,
+    /// Send to whole server
+    Server,
+}
+
+impl fmt::Display for MessageTarget {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Self::Client(id) => write!(f, "targetmode=1 target={}", id),
+            Self::Channel => write!(f, "targetmode=2"),
+            Self::Server => write!(f, "targetmode=3"),
+        }
+    }
+}
 
 #[derive(Snafu, Debug)]
 pub enum Ts3Error {
@@ -285,7 +306,24 @@ impl QueryClient {
 
     /// Poke a client.
     pub fn poke_client<T: AsRef<str>>(&mut self, client: ClientId, msg: T) -> Result<()> {
-        writeln!(&mut self.tx, "clientpoke clid={} msg={}", client, msg.as_ref())?;
+        writeln!(
+            &mut self.tx,
+            "clientpoke clid={} msg={}",
+            client,
+            msg.as_ref()
+        )?;
+        let _ = self.read_response()?;
+        Ok(())
+    }
+
+    /// Send chat message
+    pub fn send_message<T: AsRef<str>>(&mut self, target: MessageTarget, msg: T) -> Result<()> {
+        writeln!(
+            &mut self.tx,
+            "sendtextmessage {} msg={}",
+            target,
+            escape_arg(msg)
+        )?;
         let _ = self.read_response()?;
         Ok(())
     }
