@@ -5,6 +5,7 @@
 - Add poke_client function
 - Add kick_client function
 - Add send_message function
+- Export default DoS bytes/lines limit constants
 
 ### 0.2.3
 - Fix update_description function.

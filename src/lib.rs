@@ -222,8 +222,10 @@ pub struct QueryClient {
     limit_lines_bytes: u64,
 }
 
-const LIMIT_READ_LINES: usize = 100;
-const LIMIT_LINE_BYTES: u64 = 64_000;
+/// Default DoS limit for read lines
+pub const LIMIT_READ_LINES: usize = 100;
+/// Default DoS limit for read bytes per line
+pub const LIMIT_LINE_BYTES: u64 = 64_000;
 
 type Result<T> = ::std::result::Result<T, Ts3Error>;
 
@@ -270,7 +272,8 @@ impl QueryClient {
         self.limit_lines = limit;
     }
 
-    /// Set new maximum amount of bytes per line to read until DoS protection triggers.
+    /// Set new maximum amount of bytes per line to read until DoS protection triggers.  
+    /// You may need to increase this for backup/restore of instances.
     pub fn limit_line_bytes(&mut self, limit: u64) {
         self.limit_lines_bytes = limit;
     }
@@ -293,13 +296,6 @@ impl QueryClient {
             "clientupdate CLIENT_DESCRIPTION={}",
             escape_arg(descr)
         )?;
-        let _ = self.read_response()?;
-        Ok(())
-    }
-
-    /// Move a client to a channel.
-    pub fn move_client(&mut self, client: ClientId, channel: ChannelId) -> Result<()> {
-        writeln!(&mut self.tx, "clientmove clid={} cid={}", client, channel)?;
         let _ = self.read_response()?;
         Ok(())
     }
@@ -438,7 +434,21 @@ impl QueryClient {
         Ok(())
     }
 
- /// Kick client with specified message from channel/server. Message can't be longer than 40 characters.
+    /// Move client to channel with optional channel password
+    ///
+    /// Performs clientmove
+    pub fn move_client(&mut self, client: ClientId, channel: ChannelId, password: Option<&str>) -> Result<()> {
+        let pw_arg = if let Some(pw) = password {
+            format!("cpw={}",raw::escape_arg(pw).as_str())
+        } else {
+            String::new()
+        };
+        writeln!(&mut self.tx, "clientmove clid={} cid={} {}",client,channel,pw_arg)?;
+        let _ = self.read_response()?;
+        Ok(())
+    }
+
+    /// Kick client with specified message from channel/server. Message can't be longer than 40 characters.
     ///
     /// Performs clientkick
     pub fn kick_client(&mut self, client: ClientId, server: bool, message: Option<&str>) -> Result<()> {
