@@ -438,6 +438,25 @@ impl QueryClient {
         Ok(())
     }
 
+ /// Kick client with specified message from channel/server. Message can't be longer than 40 characters.
+    ///
+    /// Performs clientkick
+    pub fn kick_client(&mut self, client: ClientId, server: bool, message: Option<&str>) -> Result<()> {
+        let msg_arg = if let Some(pw) = message {
+            format!("reasonmsg={}",raw::escape_arg(pw).as_str())
+        } else {
+            String::new()
+        };
+        let rid = if server {
+            5
+        } else {
+            4
+        };
+        writeln!(&mut self.tx, "clientkick clid={} reasonid={} {}",client,rid,msg_arg)?;
+        let _ = self.read_response()?;
+        Ok(())
+    }
+
     /// Create file directory in channel, has to be a valid path starting with `/`
     ///
     /// Performs ftcreatedir
