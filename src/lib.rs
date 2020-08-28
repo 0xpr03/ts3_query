@@ -292,7 +292,11 @@ impl QueryClient {
     /// Update client description. If target is none updates this clients description.
     ///
     /// Performs `clientupdate CLIENT_DESCRIPTION` or `clientedit clid=` with `CLIENT_DESCRIPTION` if target is set.
-    pub fn update_description<T: AsRef<str>>(&mut self, descr: T, target: Option<ClientId>) -> Result<()> {
+    pub fn update_description<T: AsRef<str>>(
+        &mut self,
+        descr: T,
+        target: Option<ClientId>,
+    ) -> Result<()> {
         if let Some(clid) = target {
             writeln!(
                 &mut self.tx,
@@ -452,13 +456,22 @@ impl QueryClient {
     /// Move client to channel with optional channel password
     ///
     /// Performs `clientmove`
-    pub fn move_client(&mut self, client: ClientId, channel: ChannelId, password: Option<&str>) -> Result<()> {
+    pub fn move_client(
+        &mut self,
+        client: ClientId,
+        channel: ChannelId,
+        password: Option<&str>,
+    ) -> Result<()> {
         let pw_arg = if let Some(pw) = password {
-            format!("cpw={}",raw::escape_arg(pw).as_str())
+            format!("cpw={}", raw::escape_arg(pw).as_str())
         } else {
             String::new()
         };
-        writeln!(&mut self.tx, "clientmove clid={} cid={} {}",client,channel,pw_arg)?;
+        writeln!(
+            &mut self.tx,
+            "clientmove clid={} cid={} {}",
+            client, channel, pw_arg
+        )?;
         let _ = self.read_response()?;
         Ok(())
     }
@@ -466,18 +479,23 @@ impl QueryClient {
     /// Kick client with specified message from channel/server. Message can't be longer than 40 characters.
     ///
     /// Performs `clientkick`
-    pub fn kick_client(&mut self, client: ClientId, server: bool, message: Option<&str>) -> Result<()> {
+    pub fn kick_client(
+        &mut self,
+        client: ClientId,
+        server: bool,
+        message: Option<&str>,
+    ) -> Result<()> {
         let msg_arg = if let Some(pw) = message {
-            format!("reasonmsg={}",raw::escape_arg(pw).as_str())
+            format!("reasonmsg={}", raw::escape_arg(pw).as_str())
         } else {
             String::new()
         };
-        let rid = if server {
-            5
-        } else {
-            4
-        };
-        writeln!(&mut self.tx, "clientkick clid={} reasonid={} {}",client,rid,msg_arg)?;
+        let rid = if server { 5 } else { 4 };
+        writeln!(
+            &mut self.tx,
+            "clientkick clid={} reasonid={} {}",
+            client, rid, msg_arg
+        )?;
         let _ = self.read_response()?;
         Ok(())
     }
