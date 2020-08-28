@@ -289,13 +289,24 @@ impl QueryClient {
         Ok(())
     }
 
-    /// Update this clients description
-    pub fn update_description<T: AsRef<str>>(&mut self, descr: T) -> Result<()> {
-        writeln!(
-            &mut self.tx,
-            "clientupdate CLIENT_DESCRIPTION={}",
-            escape_arg(descr)
-        )?;
+    /// Update client description. If target is none updates this clients description.
+    ///
+    /// Performs `clientupdate CLIENT_DESCRIPTION` or `clientedit clid=` with `CLIENT_DESCRIPTION` if target is set.
+    pub fn update_description<T: AsRef<str>>(&mut self, descr: T, target: Option<ClientId>) -> Result<()> {
+        if let Some(clid) = target {
+            writeln!(
+                &mut self.tx,
+                "clientedit clid={} CLIENT_DESCRIPTION={}",
+                clid,
+                escape_arg(descr)
+            )?;
+        } else {
+            writeln!(
+                &mut self.tx,
+                "clientupdate CLIENT_DESCRIPTION={}",
+                escape_arg(descr)
+            )?;
+        }
         let _ = self.read_response()?;
         Ok(())
     }
