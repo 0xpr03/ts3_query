@@ -96,7 +96,7 @@ pub type ClientId = u16;
 pub enum MessageTarget {
     /// Send to client
     Client(ClientId),
-    /// Send to channel of this client
+    /// Send to current channel of this client. You have to join the channel you want to send a message to.
     Channel,
     /// Send to whole server
     Server,
@@ -312,6 +312,8 @@ impl QueryClient {
     }
 
     /// Poke a client.
+    ///
+    /// Performs `clientpoke`
     pub fn poke_client<T: AsRef<str>>(&mut self, client: ClientId, msg: T) -> Result<()> {
         writeln!(
             &mut self.tx,
@@ -405,7 +407,7 @@ impl QueryClient {
         Ok(v)
     }
 
-    /// Performs whoami
+    /// Performs `whoami`
     ///
     /// Returns a hashmap of entries. Values are unescaped if set.
     pub fn whoami(&mut self, unescape: bool) -> Result<HashMap<String, String>> {
@@ -438,6 +440,8 @@ impl QueryClient {
     }
 
     /// Select server to perform commands on, by port
+    ///
+    /// Performs `use port`
     pub fn select_server_by_port(&mut self, port: u16) -> Result<()> {
         writeln!(&mut self.tx, "use port={}", port)?;
 
@@ -447,7 +451,7 @@ impl QueryClient {
 
     /// Move client to channel with optional channel password
     ///
-    /// Performs clientmove
+    /// Performs `clientmove`
     pub fn move_client(&mut self, client: ClientId, channel: ChannelId, password: Option<&str>) -> Result<()> {
         let pw_arg = if let Some(pw) = password {
             format!("cpw={}",raw::escape_arg(pw).as_str())
@@ -461,7 +465,7 @@ impl QueryClient {
 
     /// Kick client with specified message from channel/server. Message can't be longer than 40 characters.
     ///
-    /// Performs clientkick
+    /// Performs `clientkick`
     pub fn kick_client(&mut self, client: ClientId, server: bool, message: Option<&str>) -> Result<()> {
         let msg_arg = if let Some(pw) = message {
             format!("reasonmsg={}",raw::escape_arg(pw).as_str())
@@ -480,7 +484,7 @@ impl QueryClient {
 
     /// Create file directory in channel, has to be a valid path starting with `/`
     ///
-    /// Performs ftcreatedir
+    /// Performs `ftcreatedir`
     pub fn create_dir<T: AsRef<str>>(&mut self, channel: ChannelId, path: T) -> Result<()> {
         writeln!(
             &mut self.tx,
@@ -496,7 +500,7 @@ impl QueryClient {
     ///
     /// Example: `/My Directory` deletes everything inside that directory.
     ///
-    /// Performs ftdeletefile
+    /// Performs `ftdeletefile`
     pub fn delete_file<T: AsRef<str>>(&mut self, channel: ChannelId, path: T) -> Result<()> {
         writeln!(
             &mut self.tx,
@@ -510,14 +514,16 @@ impl QueryClient {
 
     /// Low-cost connection check
     ///
-    /// Performs whoami command without parsing
+    /// Performs `whoami` command without parsing
     pub fn ping(&mut self) -> Result<()> {
         writeln!(&mut self.tx, "whoami")?;
         let _ = self.read_response()?;
         Ok(())
     }
 
-    /// Select server to perform commands on, by server id
+    /// Select server to perform commands on, by server id.
+    ///
+    /// Performs `use sid`
     pub fn select_server_by_id(&mut self, sid: usize) -> Result<()> {
         writeln!(&mut self.tx, "use sid={}", sid)?;
 
@@ -525,7 +531,7 @@ impl QueryClient {
         Ok(())
     }
 
-    /// Performs servergroupdelclient  
+    /// Performs `servergroupdelclient`  
     /// Removes all client-db-ids in `cldbid` from the specified `group` id.
     pub fn server_group_del_clients(
         &mut self,
@@ -545,7 +551,7 @@ impl QueryClient {
         Ok(())
     }
 
-    /// Performs servergroupaddclient  
+    /// Performs `servergroupaddclient`  
     /// Ads all specified `cldbid` clients to `group`.
     pub fn server_group_add_clients(
         &mut self,
@@ -622,7 +628,7 @@ impl QueryClient {
 
     /// Get a list of client-DB-IDs for a given server group ID
     ///
-    /// See servergroupclientlist
+    /// See `servergroupclientlist`
     pub fn get_servergroup_client_list(&mut self, group: ServerGroupID) -> Result<Vec<usize>> {
         writeln!(&mut self.tx, "servergroupclientlist sgid={}", group)?;
 
