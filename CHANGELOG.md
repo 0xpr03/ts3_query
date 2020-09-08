@@ -6,6 +6,7 @@
 - Add kick_client function
 - Add send_message function
 - Add target option to update_description function
+- Added server error code descriptions
 - Export default DoS bytes/lines limit constants
 
 ### 0.2.3
