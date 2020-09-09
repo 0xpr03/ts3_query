@@ -825,7 +825,7 @@ impl QueryClient {
                 .fail();
             }
 
-            if buffer.len() > 0 {
+            if !buffer.is_empty() {
                 let line = String::from_utf8(buffer).context(Utf8Error)?;
                 #[cfg(feature = "debug_response")]
                 println!("Read: {:?}", &line);

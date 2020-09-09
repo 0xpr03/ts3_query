@@ -136,7 +136,7 @@ impl ManagedConnection {
     fn set_name_fallback(conn: &mut QueryClient, name: &str) -> Result<()> {
         if let Err(e) = conn.rename(name) {
             if e.error_response().map_or(true, |r| r.id != ERR_NAME_TAKEN) {
-                return Err(e.into());
+                return Err(e);
             } else {
                 conn.rename(&Self::calc_name_retry(name))?;
             }
