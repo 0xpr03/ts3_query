@@ -14,7 +14,7 @@
 //! client.login("serveradmin", "password")?;
 //! client.select_server_by_port(9987)?;
 //!
-//! let group_clients = client.get_servergroup_client_list(7)?;
+//! let group_clients = client.servergroup_client_cldbids(7)?;
 //! println!("Got clients in group 7: {:?}",group_clients);
 //!
 //! client.logout()?;
