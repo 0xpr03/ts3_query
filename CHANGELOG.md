@@ -5,8 +5,9 @@
 - Add poke_client function
 - Add kick_client function
 - Add send_message function
+- Add server_groups function
 - Add target option to update_description function
-- Added server error code descriptions
+- Add server error code descriptions
 - Renamed get_servergroup_client_list to servergroup_client_cldbids
 - Export default DoS bytes/lines limit constants
 

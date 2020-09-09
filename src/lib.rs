@@ -140,7 +140,6 @@ pub enum Ts3Error {
         context: &'static str,
         data: String,
     },
-    #[cfg(feature = "managed")]
     #[snafu(display("Got invalid int response {}: {}", data, source))]
     InvalidIntResponse {
         data: String,
@@ -840,6 +839,19 @@ impl QueryClient {
         ResponseLimit { response: result }.fail()
     }
 
+
+    /// Returns a list of server groups. May contain templates and query groups if permitted.
+    ///
+    /// Performs `servergrouplist`
+    pub fn server_groups(&mut self) -> Result<Vec<ServerGroup>> {
+        writeln!(&mut self.tx, "servergrouplist")?;
+        let res = self.read_response()?;
+        let groups = raw::parse_multi_hashmap(res,false).into_iter().map(|v|{
+            Ok(ServerGroup::from_raw(v)?)
+        }).collect::<Result<_>>()?;
+
+        Ok(groups)
+    }
     /// Get a list of client-DB-IDs for a given server group ID
     ///
     /// See `servergroupclientlist`
@@ -910,6 +922,40 @@ impl QueryClient {
             data: msg.to_string(),
         })
     }
+}
+
+#[derive(Debug)]
+pub struct ServerGroup {
+    pub sgid: ServerGroupID,
+    pub name: String,
+    pub r#type: i32,
+    pub iconid: i32,
+    pub savedb: i32,
+}
+
+impl ServerGroup {
+    /// Create struct from raw line-data assuming no unescaping was performed
+    fn from_raw(mut data: HashMap<String,String>) -> Result<ServerGroup> {
+        let sgid = int_val_parser(&mut data, "sgid")?;
+        let name: String = string_val_parser(&mut data, "name")?;
+        let r#type: i32 = int_val_parser(&mut data, "type")?;
+        let iconid: i32 = int_val_parser(&mut data, "iconid")?;
+        let savedb: i32 = int_val_parser(&mut data, "savedb")?;
+
+        Ok(ServerGroup{sgid,name,r#type,iconid,savedb})
+    }
+}
+
+/// Helper function retrieve and parse value from line-hashmap, (re)moves value.
+fn int_val_parser(data: &mut HashMap<String,String>, key: &'static str) -> Result<i32> {
+    let v = data.remove(key)
+        .ok_or_else(|| NoValueResponse {key}.build())?;
+    Ok(v.parse().with_context(|| InvalidIntResponse { data: v })?)
+}
+
+/// Helper function to retrieve string value from line-hashmap, (re)moves value.
+fn string_val_parser(data: &mut HashMap<String,String>, key: &'static str) -> Result<String> {
+    Ok(data.remove(key).map(raw::unescape_val).ok_or_else(|| NoValueResponse {key}.build())?)
 }
 
 #[cfg(test)]
