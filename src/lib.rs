@@ -843,7 +843,7 @@ impl QueryClient {
     /// Get a list of client-DB-IDs for a given server group ID
     ///
     /// See `servergroupclientlist`
-    pub fn get_servergroup_client_list(&mut self, group: ServerGroupID) -> Result<Vec<usize>> {
+    pub fn servergroup_client_cldbids(&mut self, group: ServerGroupID) -> Result<Vec<usize>> {
         writeln!(&mut self.tx, "servergroupclientlist sgid={}", group)?;
 
         let resp = self.read_response()?;
