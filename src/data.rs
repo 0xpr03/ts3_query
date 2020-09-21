@@ -2,14 +2,17 @@ use crate::raw::*;
 use crate::Result;
 use std::collections::HashMap;
 
-pub type ServerGroupID = i32;
-pub type ChannelId = i32;
+pub type ServerId = i64;
+pub type ServerGroupID = i64;
+pub type ChannelId = i64;
 /// Temporary, per connection ID of a client, reused upon disconnect.  
 /// Not to be confused with a client database, myteamspeak or identity ID.
 pub type ClientId = u16;
 /// Server interal ID for client, not it's Identity / MyTeamspeak ID.
-pub type ClientDBId = i32;
-pub type ChannelGroupId = i32;
+pub type ClientDBId = i64;
+pub type ChannelGroupId = i64;
+/// CRC32 checksum of the channel icon, but received as i64 instead of u64, except when using clientdbinfo
+pub type IconHash = i64;
 
 /// Server Group returned from `server_group_list`. Field names are according to the query protocol.
 #[derive(Debug)]
@@ -17,21 +20,22 @@ pub struct ServerGroup {
     /// Identifier for this server group
     pub sgid: ServerGroupID,
     pub name: String,
+    /// Group type: template,regular,query
     /// `type` use `r#type` to specify in rust
     pub r#type: i32,
-    pub iconid: i32,
-    // ?!
-    pub savedb: i32,
+    pub iconid: IconHash,
+    // whether group is stored to DB
+    pub savedb: bool,
 }
 
 impl ServerGroup {
     /// Create struct from raw line-data assuming no unescaping was performed
     pub(crate) fn from_raw(mut data: HashMap<String, Option<String>>) -> Result<Self> {
         let sgid = int_val_parser(&mut data, "sgid")?;
-        let name: String = string_val_parser(&mut data, "name")?;
-        let r#type: i32 = int_val_parser(&mut data, "type")?;
-        let iconid: i32 = int_val_parser(&mut data, "iconid")?;
-        let savedb: i32 = int_val_parser(&mut data, "savedb")?;
+        let name = string_val_parser(&mut data, "name")?;
+        let r#type = int_val_parser(&mut data, "type")?;
+        let iconid = int_val_parser(&mut data, "iconid")?;
+        let savedb = bool_val_parser(&mut data, "savedb")?;
 
         Ok(ServerGroup {
             sgid,
@@ -49,6 +53,7 @@ pub struct OnlineClient {
     pub cid: ChannelId,
     pub client_database_id: ClientDBId,
     pub client_nickname: String,
+    /// 0 For normal client, 1 for query
     pub client_type: i8,
 }
 
@@ -76,6 +81,7 @@ pub struct OnlineClientFull {
     pub cid: ChannelId,
     pub client_database_id: ClientDBId,
     pub client_nickname: String,
+    /// 0 For normal client, 1 for query
     pub client_type: i8,
     pub client_away: bool,
     pub client_away_message: Option<String>,
@@ -95,7 +101,7 @@ pub struct OnlineClientFull {
     pub client_channel_group_inherited_channel_id: ChannelGroupId,
     pub client_version: String,
     pub client_platform: String,
-    pub client_idle_time: i32,
+    pub client_idle_time: i64,
     pub client_created: i64,
     pub client_lastconnected: i64,
     pub client_country: String,
@@ -174,9 +180,10 @@ impl OnlineClientFull {
 pub struct Channel {
     /// Channel ID
     pub cid: ChannelId,
-    /// Channel parent
+    /// Channel parent, 0 for server
     pub pid: ChannelId,
-    pub channel_order: i32,
+    /// ID of the channel
+    pub channel_order: ChannelId,
     pub channel_name: String,
     pub total_clients: i32,
     pub channel_needed_subscribe_power: i32,
@@ -208,7 +215,8 @@ pub struct ChannelFull {
     pub cid: ChannelId,
     /// Channel parent
     pub pid: ChannelId,
-    pub channel_order: i32,
+    /// ID of the channel
+    pub channel_order: ChannelId,
     pub channel_name: String,
     pub total_clients: i32,
     pub channel_needed_subscribe_power: i32,
@@ -218,10 +226,10 @@ pub struct ChannelFull {
     pub channel_flag_permanent: bool,
     pub channel_flag_semi_permanent: bool,
     pub channel_codec: i32,
-    pub channel_codec_quality: i32,
+    pub channel_codec_quality: u8,
     pub channel_needed_talk_power: i32,
-    pub channel_icon_id: i64,
-    pub seconds_empty: i32,
+    pub channel_icon_id: IconHash,
+    pub seconds_empty: i64,
     pub total_clients_family: i32,
     pub channel_maxclients: i32,
     pub channel_maxfamilyclients: i32,

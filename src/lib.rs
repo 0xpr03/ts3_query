@@ -85,10 +85,7 @@ mod data;
 #[cfg(feature = "managed")]
 pub mod managed;
 pub mod raw;
-pub use data::{
-    Channel, ChannelFull, ChannelGroupId, ChannelId, ClientDBId, ClientId, ErrorResponse,
-    OnlineClient, OnlineClientFull, ServerGroup, ServerGroupID,
-};
+pub use data::*;
 use io::Read;
 use raw::*;
 use std::fmt;
@@ -539,7 +536,7 @@ impl QueryClient {
     /// Select server to perform commands on, by server id.
     ///
     /// Performs `use sid`
-    pub fn select_server_by_id(&mut self, sid: usize) -> Result<()> {
+    pub fn select_server_by_id(&mut self, sid: ServerId) -> Result<()> {
         writeln!(&mut self.tx, "use sid={}", sid)?;
 
         let _ = self.read_response()?;
