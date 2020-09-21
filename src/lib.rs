@@ -57,10 +57,12 @@
 //! client.login("serveradmin", "password")?;
 //! client.select_server_by_port(9987)?;
 //!
-//! let res = raw::parse_multi_hashmap(client.raw_command("clientlist")?, false);
+//! let mut res = raw::parse_multi_hashmap(client.raw_command("clientlist")?, false);
 //! let names = res
 //!     .into_iter()
-//!     .map(|e| e.get("client_nickname").map(raw::unescape_val)
+//!     .map(|mut e| e.remove("client_nickname")
+//!     // ignore empty value & unescape
+//!     .unwrap().map(raw::unescape_val)
 //!      // may want to catch this in a real application
 //!         .unwrap())
 //!     .collect::<HashSet<String>>();

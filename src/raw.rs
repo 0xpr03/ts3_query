@@ -5,7 +5,22 @@ use snafu::ResultExt;
 
 /// Parse response as hashmap
 ///
-/// unescape: if true unescapes values, can be turned off to boost performance on known response types (numbers..)
+/// unescape: if true unescapes values, can be turned off to boost performance on known response types (like numbers)
+///
+/// ```rust
+/// use ts3_query::*;
+/// use std::collections::HashMap;
+/// 
+/// let input: Vec<String> = vec!["clid=28631 cid=9391 foo","client_type=1",""]
+///     .into_iter().map(ToOwned::to_owned).collect();
+/// let expected: HashMap<String, Option<String>> = vec![
+///     ("clid",Some("28631")),
+///     ("cid",Some("9391")),
+///     ("foo",None),
+///     ("client_type",Some("1"))]
+///     .into_iter().map(|(x,y)|(x.to_owned(),y.map(|y|y.to_owned()))).collect();
+/// assert_eq!(expected,raw::parse_hashmap(input,false));
+/// ```
 pub fn parse_hashmap(input: Vec<String>, unescape: bool) -> HashMap<String, Option<String>> {
     let mut map: HashMap<String, Option<String>> = HashMap::new();
     input.into_iter().for_each(|s| {
@@ -188,7 +203,19 @@ impl<I: Iterator<Item = u8>> Iterator for Escape<I> {
 }
 
 /// Helper function to read int value list from line-hashmap, (re)moves value.
-pub(crate) fn int_list_val_parser<T>(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<Vec<T>>
+///
+/// ```rust
+/// use ts3_query::*;
+/// use std::collections::HashMap;
+/// 
+/// let mut v: HashMap<String, Option<String>> =
+///     vec![("abc".to_string(), Some("123,345,123".to_string())),
+///     ("def".to_string(), None)]
+///     .into_iter().collect();
+/// let v: Vec<i32> = raw::int_list_val_parser(&mut v, "abc").unwrap();
+/// assert_eq!(vec![123,345,123],v);
+/// ```
+pub fn int_list_val_parser<T>(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<Vec<T>>
 where T: FromStr<Err=std::num::ParseIntError> {
     let v = string_val_parser(data,key)?;
     let values: Vec<T> = v.split(",").map(|v|v.parse::<T>().with_context(|| crate::InvalidIntResponse { data: v })).collect::<crate::Result<Vec<T>>>()?;
@@ -197,20 +224,57 @@ where T: FromStr<Err=std::num::ParseIntError> {
 }
 
 /// Helper function to retrieve bool value from line-hashmap, (re)moves value.
-pub(crate) fn bool_val_parser(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<bool> {
+///
+/// ```rust
+/// use ts3_query::*;
+/// use std::collections::HashMap;
+/// 
+/// let mut v: HashMap<String, Option<String>> =
+///     vec![("abc".to_string(), Some("1".to_string())),
+///     ("def".to_string(), Some("0".to_string()))]
+///     .into_iter().collect();
+/// assert_eq!(true,raw::bool_val_parser(&mut v, "abc").unwrap());
+/// assert_eq!(false,raw::bool_val_parser(&mut v, "def").unwrap());
+/// assert!(raw::bool_val_parser(&mut v, "foobar").is_err());
+/// ```
+pub fn bool_val_parser(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<bool> {
     let val: i32 = int_val_parser(data,key)?;
     Ok(val > 0)
 }
 
 /// Helper function to retrieve optional string value from line-hashmap, (re)moves value.
-pub(crate) fn string_val_parser_opt(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<Option<String>> {
+///
+/// ```rust
+/// use ts3_query::*;
+/// use std::collections::HashMap;
+/// 
+/// let mut v: HashMap<String, Option<String>> =
+///     vec![("abc".to_string(), Some("asd".to_string())),
+///     ("def".to_string(), None)]
+///     .into_iter().collect();
+/// assert_eq!(Some("asd".to_string()),raw::string_val_parser_opt(&mut v, "abc").unwrap());
+/// assert_eq!(None,raw::string_val_parser_opt(&mut v, "def").unwrap());
+/// ```
+pub fn string_val_parser_opt(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<Option<String>> {
     Ok(data.remove(key)
     .ok_or_else(|| crate::NoEntryResponse {key}.build())?
     .map(unescape_val))
 }
 
-/// Helper function retrieve and parse value from line-hashmap, (re)moves value.
-pub(crate) fn int_val_parser_opt<T>(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<Option<T>>
+/// Helper function to retrieve and parse value from line-hashmap, (re)moves value.
+///
+/// ```rust
+/// use ts3_query::*;
+/// use std::collections::HashMap;
+/// 
+/// let mut v: HashMap<String, Option<String>> =
+///     vec![("abc".to_string(), Some("123".to_string())),
+///     ("def".to_string(), None)]
+///     .into_iter().collect();
+/// assert_eq!(Some(123),raw::int_val_parser_opt::<i32>(&mut v, "abc").unwrap());
+/// assert_eq!(None,raw::int_val_parser_opt::<i32>(&mut v, "def").unwrap());
+/// ```
+pub fn int_val_parser_opt<T>(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<Option<T>>
 where T: FromStr<Err=std::num::ParseIntError> {
     let v = data.remove(key)
         .ok_or_else(|| crate::NoEntryResponse {key}.build())?;
@@ -222,8 +286,20 @@ where T: FromStr<Err=std::num::ParseIntError> {
     }
 }
 
-/// Helper function retrieve and parse value from line-hashmap, (re)moves value.
-pub(crate) fn int_val_parser<T>(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<T>
+/// Helper function to retrieve and parse value from line-hashmap, (re)moves value.
+///
+/// ```rust
+/// use ts3_query::*;
+/// use std::collections::HashMap;
+/// 
+/// let mut v: HashMap<String, Option<String>> =
+///     vec![("abc".to_string(), Some("123".to_string())),
+///     ("def".to_string(), None)]
+///     .into_iter().collect();
+/// assert_eq!(123,raw::int_val_parser::<i32>(&mut v, "abc").unwrap());
+/// assert!(raw::int_val_parser::<i32>(&mut v, "def").is_err());
+/// ```
+pub fn int_val_parser<T>(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<T>
 where T: FromStr<Err=std::num::ParseIntError> {
     let v = data.remove(key)
         .ok_or_else(|| crate::NoEntryResponse {key}.build())?
@@ -232,7 +308,19 @@ where T: FromStr<Err=std::num::ParseIntError> {
 }
 
 /// Helper function to retrieve string value from line-hashmap, (re)moves value.
-pub(crate) fn string_val_parser(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<String> {
+///
+/// ```rust
+/// use ts3_query::*;
+/// use std::collections::HashMap;
+/// 
+/// let mut v: HashMap<String, Option<String>> =
+///     vec![("abc".to_string(), Some("asd".to_string())),
+///     ("def".to_string(), None)]
+///     .into_iter().collect();
+/// assert_eq!("asd".to_string(),raw::string_val_parser(&mut v, "abc").unwrap());
+/// assert!(raw::string_val_parser(&mut v, "def").is_err());
+/// ```
+pub fn string_val_parser(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<String> {
     Ok(string_val_parser_opt(data,key)?
     .ok_or_else(|| crate::NoValueResponse{key}.build())?)
 }
