@@ -214,7 +214,7 @@ pub struct ChannelFull {
     pub channel_codec: i32,
     pub channel_codec_quality: i32,
     pub channel_needed_talk_power: i32,
-    pub channel_icon_id: i32,
+    pub channel_icon_id: i64,
     pub seconds_empty: i32,
     pub total_clients_family: i32,
     pub channel_maxclients: i32,
