@@ -6,8 +6,8 @@ use snafu::ResultExt;
 /// Parse response as hashmap
 ///
 /// unescape: if true unescapes values, can be turned off to boost performance on known response types (numbers..)
-pub fn parse_hashmap(input: Vec<String>, unescape: bool) -> HashMap<String, String> {
-    let mut map: HashMap<String, String> = HashMap::new();
+pub fn parse_hashmap(input: Vec<String>, unescape: bool) -> HashMap<String, Option<String>> {
+    let mut map: HashMap<String, Option<String>> = HashMap::new();
     input.into_iter().for_each(|s| {
         parse_single_line_hashmap(&s, &mut map, unescape);
     });
@@ -15,7 +15,7 @@ pub fn parse_hashmap(input: Vec<String>, unescape: bool) -> HashMap<String, Stri
 }
 
 /// Parse a single hashmap, not able to handle lists, see parse_multi_hashmap.
-fn parse_single_line_hashmap(line: &str, map: &mut HashMap<String, String>, unescape: bool) {
+fn parse_single_line_hashmap(line: &str, map: &mut HashMap<String, Option<String>>, unescape: bool) {
     line.split_whitespace().for_each(|e| {
         let mut entries = e.split('=');
         if let (Some(k), Some(v)) = (entries.next(), entries.next()) {
@@ -24,7 +24,9 @@ fn parse_single_line_hashmap(line: &str, map: &mut HashMap<String, String>, unes
             } else {
                 v.to_string()
             };
-            map.insert(k.to_string(), v);
+            map.insert(k.to_string(), Some(v));
+        } else if !e.is_empty() {
+            map.insert(e.to_string(), None);
         }
     });
 }
@@ -37,8 +39,8 @@ fn parse_single_line_hashmap(line: &str, map: &mut HashMap<String, String>, unes
 /// client_type=1|clid=1775 cid=9402 client_database_id=136830 ///client_nickname=ASDF\\/FGHJ\\/Dewran client_type=0|
 /// clid=1 cid=24426 client_database_id=18106 client_nickname=bot client_type=1
 /// ```
-pub fn parse_multi_hashmap(input: Vec<String>, unescape: bool) -> Vec<HashMap<String, String>> {
-    let v: Vec<HashMap<String, String>> = input
+pub fn parse_multi_hashmap(input: Vec<String>, unescape: bool) -> Vec<HashMap<String, Option<String>>> {
+    let v: Vec<HashMap<String, Option<String>>> = input
         .into_iter()
         .map(|l| {
             l.split('|')
@@ -47,7 +49,7 @@ pub fn parse_multi_hashmap(input: Vec<String>, unescape: bool) -> Vec<HashMap<St
                     parse_single_line_hashmap(s, &mut map, unescape);
                     map
                 })
-                .collect::<Vec<HashMap<String, String>>>()
+                .collect::<Vec<HashMap<String, Option<String>>>>()
         })
         .flatten()
         .collect();
@@ -185,17 +187,54 @@ impl<I: Iterator<Item = u8>> Iterator for Escape<I> {
     }
 }
 
+/// Helper function to read int value list from line-hashmap, (re)moves value.
+pub(crate) fn int_list_val_parser<T>(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<Vec<T>>
+where T: FromStr<Err=std::num::ParseIntError> {
+    let v = string_val_parser(data,key)?;
+    let values: Vec<T> = v.split(",").map(|v|v.parse::<T>().with_context(|| crate::InvalidIntResponse { data: v })).collect::<crate::Result<Vec<T>>>()?;
+
+    Ok(values)
+}
+
+/// Helper function to retrieve bool value from line-hashmap, (re)moves value.
+pub(crate) fn bool_val_parser(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<bool> {
+    let val: i32 = int_val_parser(data,key)?;
+    Ok(val > 0)
+}
+
+/// Helper function to retrieve optional string value from line-hashmap, (re)moves value.
+pub(crate) fn string_val_parser_opt(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<Option<String>> {
+    Ok(data.remove(key)
+    .ok_or_else(|| crate::NoEntryResponse {key}.build())?
+    .map(unescape_val))
+}
+
 /// Helper function retrieve and parse value from line-hashmap, (re)moves value.
-pub(crate) fn int_val_parser<T>(data: &mut HashMap<String,String>, key: &'static str) -> crate::Result<T>
+pub(crate) fn int_val_parser_opt<T>(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<Option<T>>
 where T: FromStr<Err=std::num::ParseIntError> {
     let v = data.remove(key)
-        .ok_or_else(|| crate::NoValueResponse {key}.build())?;
+        .ok_or_else(|| crate::NoEntryResponse {key}.build())?;
+
+    if let Some(v) = v {
+        return Ok(Some(v.parse().with_context(|| crate::InvalidIntResponse { data: v })?));
+    } else {
+        return Ok(None);
+    }
+}
+
+/// Helper function retrieve and parse value from line-hashmap, (re)moves value.
+pub(crate) fn int_val_parser<T>(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<T>
+where T: FromStr<Err=std::num::ParseIntError> {
+    let v = data.remove(key)
+        .ok_or_else(|| crate::NoEntryResponse {key}.build())?
+        .ok_or_else(|| crate::NoValueResponse{key}.build())?;
     Ok(v.parse().with_context(|| crate::InvalidIntResponse { data: v })?)
 }
 
 /// Helper function to retrieve string value from line-hashmap, (re)moves value.
-pub(crate) fn string_val_parser(data: &mut HashMap<String,String>, key: &'static str) -> crate::Result<String> {
-    Ok(data.remove(key).map(unescape_val).ok_or_else(|| crate::NoValueResponse {key}.build())?)
+pub(crate) fn string_val_parser(data: &mut HashMap<String,Option<String>>, key: &'static str) -> crate::Result<String> {
+    Ok(string_val_parser_opt(data,key)?
+    .ok_or_else(|| crate::NoValueResponse{key}.build())?)
 }
 
 #[cfg(test)]
@@ -217,33 +256,48 @@ mod test {
         let v = "clid=1776 client_database_id=18106 client_nickname=FOOBAR\\s\\p\\sNora\\s\\p\\sLaptop client_type=1";
         let mut map = HashMap::new();
         parse_single_line_hashmap(v, &mut map, false);
-        assert_eq!(Some("1776"), map.get("clid").map(String::as_str));
+        assert_eq!(Some("1776"), map.get("clid").map(|v|v.as_ref().map(|v|v.as_str())).flatten());
         assert_eq!(
             Some("18106"),
-            map.get("client_database_id").map(String::as_str)
+            map.get("client_database_id").map(|v|v.as_ref().map(|v|v.as_str())).flatten()
         );
         assert_eq!(
             Some("FOOBAR\\s\\p\\sNora\\s\\p\\sLaptop"),
-            map.get("client_nickname").map(String::as_str)
+            map.get("client_nickname").map(|v|v.as_ref().map(|v|v.as_str())).flatten()
         );
-        assert_eq!(Some("1"), map.get("client_type").map(String::as_str));
+        assert_eq!(Some("1"), map.get("client_type").map(|v|v.as_ref().map(|v|v.as_str())).flatten());
         // verify public function does the same
         assert_eq!(map, parse_hashmap(vec![v.to_string()], false));
 
         let mut map = HashMap::new();
         parse_single_line_hashmap(v, &mut map, true);
-        assert_eq!(Some("1776"), map.get("clid").map(String::as_str));
+        assert_eq!(Some("1776"), map.get("clid").map(|v|v.as_ref().map(|v|v.as_str())).flatten());
         assert_eq!(
             Some("18106"),
-            map.get("client_database_id").map(String::as_str)
+            map.get("client_database_id").map(|v|v.as_ref().map(|v|v.as_str())).flatten()
         );
         assert_eq!(
             Some(r#"FOOBAR | Nora | Laptop"#),
-            map.get("client_nickname").map(String::as_str)
+            map.get("client_nickname").map(|v|v.as_ref().map(|v|v.as_str())).flatten()
         );
-        assert_eq!(Some("1"), map.get("client_type").map(String::as_str));
+        assert_eq!(Some("1"), map.get("client_type").map(|v|v.as_ref().map(|v|v.as_str())).flatten());
         // verify public function does the same
         assert_eq!(map, parse_hashmap(vec![v.to_string()], true));
+    }
+
+    #[test]
+    pub fn verify_single_map_optional() {
+        let v = "client_type=123 client_away=456 client_away_message client_flag_talking=789";
+        let mut map = HashMap::new();
+        parse_single_line_hashmap(v, &mut map, false);
+
+        let mut expected = HashMap::new();
+        expected.insert("client_type".to_string(),Some("123".to_string()));
+        expected.insert("client_away".to_string(),Some("456".to_string()));
+        expected.insert("client_away_message".to_string(),None);
+        expected.insert("client_flag_talking".to_string(),Some("789".to_string()));
+
+        assert_eq!(map,expected);
     }
 
     #[test]
@@ -251,16 +305,16 @@ mod test {
         let v = "clid=1776 client_database_id=18106|client_nickname=FOOBAR\\s\\p\\sNora\\s\\p\\sLaptop client_type=1";
         let result = parse_multi_hashmap(vec![v.to_string()], true);
         let first = &result[0];
-        assert_eq!(Some("1776"), first.get("clid").map(String::as_str));
+        assert_eq!(Some("1776"), first.get("clid").map(|v|v.as_ref().map(|v|v.as_str())).flatten());
         assert_eq!(
             Some("18106"),
-            first.get("client_database_id").map(String::as_str)
+            first.get("client_database_id").map(|v|v.as_ref().map(|v|v.as_str())).flatten()
         );
         let second = &result[1];
         assert_eq!(
             Some(r#"FOOBAR | Nora | Laptop"#),
-            second.get("client_nickname").map(String::as_str)
+            second.get("client_nickname").map(|v|v.as_ref().map(|v|v.as_str())).flatten()
         );
-        assert_eq!(Some("1"), second.get("client_type").map(String::as_str));
+        assert_eq!(Some("1"), second.get("client_type").map(|v|v.as_ref().map(|v|v.as_str())).flatten());
     }
 }

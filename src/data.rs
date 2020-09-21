@@ -26,7 +26,7 @@ pub struct ServerGroup {
 
 impl ServerGroup {
     /// Create struct from raw line-data assuming no unescaping was performed
-    pub(crate) fn from_raw(mut data: HashMap<String,String>) -> Result<Self> {
+    pub(crate) fn from_raw(mut data: HashMap<String,Option<String>>) -> Result<Self> {
         let sgid = int_val_parser(&mut data, "sgid")?;
         let name: String = string_val_parser(&mut data, "name")?;
         let r#type: i32 = int_val_parser(&mut data, "type")?;
@@ -47,7 +47,7 @@ pub struct OnlineClient {
 }
 
 impl OnlineClient {
-    pub(crate) fn from_raw(mut data: HashMap<String, String>) -> Result<Self> {
+    pub(crate) fn from_raw(mut data: HashMap<String, Option<String>>) -> Result<Self> {
         let clid = int_val_parser(&mut data, "clid")?;
         let cid = int_val_parser(&mut data, "cid")?;
         let client_database_id = int_val_parser(&mut data, "client_database_id")?;
@@ -94,25 +94,74 @@ pub struct OnlineClientFull {
     pub client_lastconnected: i64,
     pub client_country: String,
     pub connection_client_ip: String,
-    pub client_badges: Option<String>,
+    pub client_badges: Option<String>, // TODO: CHECK TYPE
 }
 
 impl OnlineClientFull {
-    // fn from_raw(mut data: HashMap<String, String>) -> Result<Self> {
-    //     let clid = raw::int_val_parser(&mut data, "clid")?;
-    //     let cid = raw::int_val_parser(&mut data, "cid")?;
-    //     let client_database_id = raw::int_val_parser(&mut data, "client_database_id")?;
-    //     let client_nickname: String = raw::string_val_parser(&mut data, "client_nickname")?;
-    //     let client_type = raw::int_val_parser(&mut data, "client_type")?;
+    pub(crate) fn from_raw(mut data: HashMap<String, Option<String>>) -> Result<Self> {
+        let clid = int_val_parser(&mut data, "clid")?;
+        let cid = int_val_parser(&mut data, "cid")?;
+        let client_database_id = int_val_parser(&mut data, "client_database_id")?;
+        let client_nickname: String = string_val_parser(&mut data, "client_nickname")?;
+        let client_type = int_val_parser(&mut data, "client_type")?;
 
-    //     Ok(OnlineClient {
-    //         clid,
-    //         cid,
-    //         client_database_id,
-    //         client_nickname,
-    //         client_type,
-    //     })
-    // }
+        let client_away = bool_val_parser(&mut data, "client_away")?;
+        let client_away_message = string_val_parser_opt(&mut data, "client_away_message")?;
+        let client_flag_talking = bool_val_parser(&mut data, "client_flag_talking")?;
+        let client_input_muted = bool_val_parser(&mut data, "client_input_muted")?;
+        let client_output_muted = bool_val_parser(&mut data, "client_output_muted")?;
+        let client_input_hardware = bool_val_parser(&mut data, "client_input_hardware")?;
+        let client_output_hardware = bool_val_parser(&mut data, "client_output_hardware")?;
+        let client_talk_power = int_val_parser(&mut data, "client_talk_power")?;
+        let client_is_talker = bool_val_parser(&mut data, "client_is_talker")?;
+        let client_is_priority_speaker = bool_val_parser(&mut data, "client_is_priority_speaker")?;
+        let client_is_recording = bool_val_parser(&mut data, "client_is_recording")?;
+        let client_is_channel_commander = bool_val_parser(&mut data, "client_is_channel_commander")?;
+        let client_unique_identifier= string_val_parser(&mut data, "client_unique_identifier")?;
+        let client_servergroups = int_list_val_parser(&mut data, "client_servergroups")?;
+        let client_channel_group_id = int_val_parser(&mut data, "client_channel_group_id")?;
+        let client_channel_group_inherited_channel_id = int_val_parser(&mut data, "client_channel_group_inherited_channel_id")?;
+        let client_version= string_val_parser(&mut data, "client_version")?;
+        let client_platform= string_val_parser(&mut data, "client_platform")?;
+        let client_idle_time = int_val_parser(&mut data, "client_idle_time")?;
+        let client_created = int_val_parser(&mut data, "client_created")?;
+        let client_lastconnected = int_val_parser(&mut data, "client_lastconnected")?;
+        let client_country= string_val_parser(&mut data, "client_country")?;
+        let connection_client_ip = string_val_parser(&mut data, "connection_client_ip")?;
+        let client_badges = string_val_parser_opt(&mut data, "client_badges")?;
+
+        Ok(OnlineClientFull {
+            clid,
+            cid,
+            client_database_id,
+            client_nickname,
+            client_type,
+            client_away,
+            client_away_message,
+            client_flag_talking,
+            client_input_muted,
+            client_output_muted,
+            client_input_hardware,
+            client_output_hardware,
+            client_talk_power,
+            client_is_talker,
+            client_is_priority_speaker,
+            client_is_recording,
+            client_is_channel_commander,
+            client_unique_identifier,
+            client_servergroups,
+            client_channel_group_id,
+            client_channel_group_inherited_channel_id,
+            client_version,
+            client_platform,
+            client_idle_time,
+            client_created,
+            client_lastconnected,
+            client_country,
+            connection_client_ip,
+            client_badges
+        })
+    }
 }
 
 

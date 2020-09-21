@@ -172,15 +172,8 @@ impl ManagedConnection {
         Ok(match self.conn_id {
             Some(v) => v,
             None => {
-                let res = self.get()?.whoami(false)?;
-                let clid = res
-                    .get(KEY_CLIENT_ID_SELF)
-                    .with_context(|| NoValueResponse {
-                        key: KEY_CLIENT_ID_SELF,
-                    })?;
-                let clid = clid
-                    .parse()
-                    .with_context(|| InvalidIntResponse { data: clid })?;
+                let mut res = self.get()?.whoami(false)?;
+                let clid = crate::raw::int_val_parser(&mut res, KEY_CLIENT_ID_SELF)?;
                 self.conn_id = Some(clid);
                 clid
             }

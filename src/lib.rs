@@ -160,8 +160,14 @@ pub enum Ts3Error {
     #[cfg(feature = "managed")]
     #[snafu(display("Invalid name length: {} max: {}!", length, expected))]
     InvalidNameLength { length: usize, expected: usize },
-    /// No client ID found!
-    #[snafu(display("Expected entry for key {}, found none!", key))]
+    /// No entry for key in server response, expected one.
+    #[snafu(display("Expected entry for key {}, key not found!", key))]
+    NoEntryResponse {
+        key: &'static str,
+        backtrace: Backtrace,
+    },
+    /// No value for key in response, expected some.
+    #[snafu(display("Expected value for key {}, got none!", key))]
     NoValueResponse {
         key: &'static str,
         backtrace: Backtrace,
@@ -401,7 +407,7 @@ impl QueryClient {
     /// Performs `whoami`
     ///
     /// Returns a hashmap of entries. Values are unescaped if set.
-    pub fn whoami(&mut self, unescape: bool) -> Result<HashMap<String, String>> {
+    pub fn whoami(&mut self, unescape: bool) -> Result<HashMap<String, Option<String>>> {
         writeln!(&mut self.tx, "whoami")?;
         let v = self.read_response()?;
         Ok(parse_hashmap(v, unescape))
@@ -631,13 +637,19 @@ impl QueryClient {
         ResponseLimit { response: result }.fail()
     }
 
-    // /// Returns a list of online clients with full infos. Visiblity depends on current permissions. Values are unescaped where applicable.
-    // ///
-    // /// Performs `clientlist -uid -away -voice -times -groups -info -country -ip -badges`
-    // pub fn online_clients_full(&mut self) -> Result<Vec<>> {
-    //     writeln!(&mut self.tx, "clientlist -uid -away -voice -times -groups -info -country -ip -badges")?;
-    //     let res = self.read_response()?;
-    // }
+    /// Returns a list of online clients with full infos. Visiblity depends on current permissions. Values are unescaped where applicable.
+    ///
+    /// Performs `clientlist -uid -away -voice -times -groups -info -country -ip -badges`
+    pub fn online_clients_full(&mut self) -> Result<Vec<OnlineClientFull>> {
+        writeln!(&mut self.tx, "clientlist -uid -away -voice -times -groups -info -country -ip -badges")?;
+        let res = self.read_response()?;
+
+        let clients  = raw::parse_multi_hashmap(res, false).into_iter().map(|v|{
+            Ok(OnlineClientFull::from_raw(v)?)
+        }).collect::<Result<_>>()?;
+
+        Ok(clients)
+    }
 
     /// Returns a list of online clients. Visiblity depends on current permissions. Values are unescaped where applicable.
     ///

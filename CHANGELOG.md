@@ -1,12 +1,14 @@
 ### 0.3.0
 - Add proper types for channel & servergroup IDs, changes some parameter types
 - Accept both String and &str on multiple places
+- All result parsing has now an optional value to allow for empty values
 - Add move_client function
 - Add poke_client function
 - Add kick_client function
 - Add send_message function
 - Add server_groups function
 - Add online_clients function
+- Add online_clients_full function with every flag
 - Add target option to update_description function
 - Add server error code descriptions
 - Renamed get_servergroup_client_list to servergroup_client_cldbids
