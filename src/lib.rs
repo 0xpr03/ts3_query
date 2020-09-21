@@ -212,7 +212,11 @@ type Result<T> = ::std::result::Result<T, Ts3Error>;
 
 impl Drop for QueryClient {
     fn drop(&mut self) {
-        self.quit();
+        #[allow(unused_variables)]
+        if let Err(e) = self.quit() {
+            #[cfg(feature="debug_response")]
+            eprintln!("Can't quit on drop: {}",e);
+        }
         let _ = self.tx.shutdown(Shutdown::Both);
     }
 }
@@ -323,8 +327,10 @@ impl QueryClient {
     }
 
     /// Send quit command, does not close the socket, not to be exposed
-    fn quit(&mut self) {
-        let _ = writeln!(&mut self.tx, "quit");
+    fn quit(&mut self) -> Result<()> {
+        writeln!(&mut self.tx, "quit")?;
+        let _ = self.read_response()?;
+        Ok(())
     }
 
     /// Inner new-function that handles greeting etc
