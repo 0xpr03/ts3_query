@@ -73,19 +73,22 @@
 //! ```
 #![cfg_attr(docsrs, feature(doc_cfg))]
 use snafu::{Backtrace, OptionExt, ResultExt, Snafu};
-use std::{collections::HashMap};
+use std::collections::HashMap;
 use std::fmt::{Debug, Write as FmtWrite};
 use std::io::{self, BufRead, BufReader, Write};
 use std::net::{Shutdown, TcpStream, ToSocketAddrs};
 use std::string::FromUtf8Error;
 use std::time::Duration;
 
+mod data;
 #[cfg_attr(docsrs, doc(cfg(feature = "managed")))]
 #[cfg(feature = "managed")]
 pub mod managed;
 pub mod raw;
-mod data;
-pub use data::{OnlineClient, OnlineClientFull,ServerGroup, ServerGroupID, ChannelId, ClientId, ChannelGroupId,ClientDBId,ErrorResponse,Channel,ChannelFull};
+pub use data::{
+    Channel, ChannelFull, ChannelGroupId, ChannelId, ClientDBId, ClientId, ErrorResponse,
+    OnlineClient, OnlineClientFull, ServerGroup, ServerGroupID,
+};
 use io::Read;
 use raw::*;
 use std::fmt;
@@ -202,7 +205,6 @@ impl From<io::Error> for Ts3Error {
     }
 }
 
-
 /// Ts3 Query client with active connection
 pub struct QueryClient {
     rx: BufReader<TcpStream>,
@@ -222,8 +224,8 @@ impl Drop for QueryClient {
     fn drop(&mut self) {
         #[allow(unused_variables)]
         if let Err(e) = self.quit() {
-            #[cfg(feature="debug_response")]
-            eprintln!("Can't quit on drop: {}",e);
+            #[cfg(feature = "debug_response")]
+            eprintln!("Can't quit on drop: {}", e);
         }
         let _ = self.tx.shutdown(Shutdown::Both);
     }
@@ -643,12 +645,16 @@ impl QueryClient {
     ///
     /// Performs `clientlist -uid -away -voice -times -groups -info -country -ip -badges`
     pub fn online_clients_full(&mut self) -> Result<Vec<OnlineClientFull>> {
-        writeln!(&mut self.tx, "clientlist -uid -away -voice -times -groups -info -country -ip -badges")?;
+        writeln!(
+            &mut self.tx,
+            "clientlist -uid -away -voice -times -groups -info -country -ip -badges"
+        )?;
         let res = self.read_response()?;
 
-        let clients  = raw::parse_multi_hashmap(res, false).into_iter().map(|v|{
-            Ok(OnlineClientFull::from_raw(v)?)
-        }).collect::<Result<_>>()?;
+        let clients = raw::parse_multi_hashmap(res, false)
+            .into_iter()
+            .map(|v| Ok(OnlineClientFull::from_raw(v)?))
+            .collect::<Result<_>>()?;
 
         Ok(clients)
     }
@@ -660,9 +666,10 @@ impl QueryClient {
         writeln!(&mut self.tx, "clientlist")?;
         let res = self.read_response()?;
 
-        let clients  = raw::parse_multi_hashmap(res, false).into_iter().map(|v|{
-            Ok(OnlineClient::from_raw(v)?)
-        }).collect::<Result<_>>()?;
+        let clients = raw::parse_multi_hashmap(res, false)
+            .into_iter()
+            .map(|v| Ok(OnlineClient::from_raw(v)?))
+            .collect::<Result<_>>()?;
 
         Ok(clients)
     }
@@ -674,9 +681,10 @@ impl QueryClient {
         writeln!(&mut self.tx, "channellist")?;
         let res = self.read_response()?;
 
-        let channels = raw::parse_multi_hashmap(res,false).into_iter().map(|v|{
-            Ok(Channel::from_raw(v)?)
-        }).collect::<Result<_>>()?;
+        let channels = raw::parse_multi_hashmap(res, false)
+            .into_iter()
+            .map(|v| Ok(Channel::from_raw(v)?))
+            .collect::<Result<_>>()?;
 
         Ok(channels)
     }
@@ -685,12 +693,16 @@ impl QueryClient {
     ///
     /// Performs `channellist -topic -flags -voice -limits -icon -secondsempty`
     pub fn channels_full(&mut self) -> Result<Vec<ChannelFull>> {
-        writeln!(&mut self.tx, "channellist -topic -flags -voice -limits -icon -secondsempty")?;
+        writeln!(
+            &mut self.tx,
+            "channellist -topic -flags -voice -limits -icon -secondsempty"
+        )?;
         let res = self.read_response()?;
 
-        let channels = raw::parse_multi_hashmap(res,false).into_iter().map(|v|{
-            Ok(ChannelFull::from_raw(v)?)
-        }).collect::<Result<_>>()?;
+        let channels = raw::parse_multi_hashmap(res, false)
+            .into_iter()
+            .map(|v| Ok(ChannelFull::from_raw(v)?))
+            .collect::<Result<_>>()?;
 
         Ok(channels)
     }
@@ -702,9 +714,10 @@ impl QueryClient {
         writeln!(&mut self.tx, "servergrouplist")?;
         let res = self.read_response()?;
 
-        let groups = raw::parse_multi_hashmap(res,false).into_iter().map(|v|{
-            Ok(ServerGroup::from_raw(v)?)
-        }).collect::<Result<_>>()?;
+        let groups = raw::parse_multi_hashmap(res, false)
+            .into_iter()
+            .map(|v| Ok(ServerGroup::from_raw(v)?))
+            .collect::<Result<_>>()?;
 
         Ok(groups)
     }
@@ -780,7 +793,6 @@ impl QueryClient {
         })
     }
 }
-
 
 #[cfg(test)]
 mod test {

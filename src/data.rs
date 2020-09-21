@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-use crate::Result;
 use crate::raw::*;
+use crate::Result;
+use std::collections::HashMap;
 
 pub type ServerGroupID = i32;
 pub type ChannelId = i32;
@@ -26,14 +26,20 @@ pub struct ServerGroup {
 
 impl ServerGroup {
     /// Create struct from raw line-data assuming no unescaping was performed
-    pub(crate) fn from_raw(mut data: HashMap<String,Option<String>>) -> Result<Self> {
+    pub(crate) fn from_raw(mut data: HashMap<String, Option<String>>) -> Result<Self> {
         let sgid = int_val_parser(&mut data, "sgid")?;
         let name: String = string_val_parser(&mut data, "name")?;
         let r#type: i32 = int_val_parser(&mut data, "type")?;
         let iconid: i32 = int_val_parser(&mut data, "iconid")?;
         let savedb: i32 = int_val_parser(&mut data, "savedb")?;
 
-        Ok(ServerGroup{sgid,name,r#type,iconid,savedb})
+        Ok(ServerGroup {
+            sgid,
+            name,
+            r#type,
+            iconid,
+            savedb,
+        })
     }
 }
 
@@ -159,7 +165,7 @@ impl OnlineClientFull {
             client_lastconnected,
             client_country,
             connection_client_ip,
-            client_badges
+            client_badges,
         })
     }
 }
@@ -412,7 +418,9 @@ impl ErrorResponse {
             2325 => Some("sound need more data"),
             2326 => Some("sound device was busy"),
             2327 => Some("there is no sound data for this period"),
-            2328 => Some("Channelmask set bits count (speakers) is not the same as channel (count)"),
+            2328 => {
+                Some("Channelmask set bits count (speakers) is not the same as channel (count)")
+            }
             2560 => Some("invalid group ID"),
             2561 => Some("duplicate entry"),
             2562 => Some("invalid permission ID"),
@@ -472,9 +480,9 @@ impl ErrorResponse {
 impl std::fmt::Display for ErrorResponse {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(descr) = self.error_name() {
-            writeln!(f, "Error {}: {}, msg: {}", self.id,descr, self.msg)
+            writeln!(f, "Error {}: {}, msg: {}", self.id, descr, self.msg)
         } else {
             writeln!(f, "Unknown Error code {}, msg: {}", self.id, self.msg)
-        }        
+        }
     }
 }
