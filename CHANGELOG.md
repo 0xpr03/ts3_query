@@ -6,6 +6,7 @@
 - Add kick_client function
 - Add send_message function
 - Add server_groups function
+- Add online_clients function
 - Add target option to update_description function
 - Add server error code descriptions
 - Renamed get_servergroup_client_list to servergroup_client_cldbids

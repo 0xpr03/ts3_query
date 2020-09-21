@@ -1,5 +1,7 @@
 //! Module with helpers for raw-calls
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
+
+use snafu::ResultExt;
 
 /// Parse response as hashmap
 ///
@@ -181,6 +183,19 @@ impl<I: Iterator<Item = u8>> Iterator for Escape<I> {
             },
         )
     }
+}
+
+/// Helper function retrieve and parse value from line-hashmap, (re)moves value.
+pub(crate) fn int_val_parser<T>(data: &mut HashMap<String,String>, key: &'static str) -> crate::Result<T>
+where T: FromStr<Err=std::num::ParseIntError> {
+    let v = data.remove(key)
+        .ok_or_else(|| crate::NoValueResponse {key}.build())?;
+    Ok(v.parse().with_context(|| crate::InvalidIntResponse { data: v })?)
+}
+
+/// Helper function to retrieve string value from line-hashmap, (re)moves value.
+pub(crate) fn string_val_parser(data: &mut HashMap<String,String>, key: &'static str) -> crate::Result<String> {
+    Ok(data.remove(key).map(unescape_val).ok_or_else(|| crate::NoValueResponse {key}.build())?)
 }
 
 #[cfg(test)]
