@@ -164,6 +164,109 @@ impl OnlineClientFull {
     }
 }
 
+#[derive(Debug)]
+pub struct Channel {
+    /// Channel ID
+    pub cid: ChannelId,
+    /// Channel parent
+    pub pid: ChannelId,
+    pub channel_order: i32,
+    pub channel_name: String,
+    pub total_clients: i32,
+    pub channel_needed_subscribe_power: i32,
+}
+
+impl Channel {
+    pub(crate) fn from_raw(mut data: HashMap<String, Option<String>>) -> Result<Self> {
+        let cid = int_val_parser(&mut data, "cid")?;
+        let pid = int_val_parser(&mut data, "pid")?;
+        let channel_order = int_val_parser(&mut data, "channel_order")?;
+        let channel_name: String = string_val_parser(&mut data, "channel_name")?;
+        let total_clients = int_val_parser(&mut data, "total_clients")?;
+        let channel_needed_subscribe_power = int_val_parser(&mut data, "channel_needed_subscribe_power")?;
+
+        Ok(Channel {
+            cid,
+            pid,
+            channel_order,
+            channel_name,
+            total_clients,
+            channel_needed_subscribe_power,
+        })
+    }
+}
+
+#[derive(Debug)]
+pub struct ChannelFull {
+    /// Channel ID
+    pub cid: ChannelId,
+    /// Channel parent
+    pub pid: ChannelId,
+    pub channel_order: i32,
+    pub channel_name: String,
+    pub total_clients: i32,
+    pub channel_needed_subscribe_power: i32,
+    pub channel_topic: Option<String>,
+    pub channel_flag_default: bool,
+    pub channel_flag_password: bool,
+    pub channel_flag_permanent: bool,
+    pub channel_flag_semi_permanent: bool,
+    pub channel_codec: i32,
+    pub channel_codec_quality: i32,
+    pub channel_needed_talk_power: i32,
+    pub channel_icon_id: i32,
+    pub seconds_empty: i32,
+    pub total_clients_family: i32,
+    pub channel_maxclients: i32,
+    pub channel_maxfamilyclients: i32,
+}
+
+impl ChannelFull {
+    pub(crate) fn from_raw(mut data: HashMap<String, Option<String>>) -> Result<Self> {
+        let cid = int_val_parser(&mut data, "cid")?;
+        let pid = int_val_parser(&mut data, "pid")?;
+        let channel_order = int_val_parser(&mut data, "channel_order")?;
+        let channel_name: String = string_val_parser(&mut data, "channel_name")?;
+        let total_clients = int_val_parser(&mut data, "total_clients")?;
+        let channel_needed_subscribe_power = int_val_parser(&mut data, "channel_needed_subscribe_power")?;
+
+        let channel_topic = string_val_parser_opt(&mut data, "channel_topic")?;
+        let channel_flag_default = bool_val_parser(&mut data, "channel_flag_default")?;
+        let channel_flag_password = bool_val_parser(&mut data, "channel_flag_password")?;
+        let channel_flag_permanent = bool_val_parser(&mut data, "channel_flag_permanent")?;
+        let channel_flag_semi_permanent = bool_val_parser(&mut data, "channel_flag_semi_permanent")?;
+        let channel_codec = int_val_parser(&mut data, "channel_codec")?;
+        let channel_codec_quality = int_val_parser(&mut data, "channel_codec_quality")?;
+        let channel_needed_talk_power = int_val_parser(&mut data, "channel_needed_talk_power")?;
+        let channel_icon_id = int_val_parser(&mut data, "channel_icon_id")?;
+        let seconds_empty = int_val_parser(&mut data, "seconds_empty")?;
+        let total_clients_family = int_val_parser(&mut data, "total_clients_family")?;
+        let channel_maxclients = int_val_parser(&mut data, "channel_maxclients")?;
+        let channel_maxfamilyclients = int_val_parser(&mut data, "channel_maxfamilyclients")?;
+
+        Ok(ChannelFull {
+            cid,
+            pid,
+            channel_order,
+            channel_name,
+            total_clients,
+            channel_needed_subscribe_power,
+            channel_topic,
+            channel_flag_default,
+            channel_flag_password,
+            channel_flag_permanent,
+            channel_flag_semi_permanent,
+            channel_codec,
+            channel_codec_quality,
+            channel_needed_talk_power,
+            channel_icon_id,
+            seconds_empty,
+            total_clients_family,
+            channel_maxclients,
+            channel_maxfamilyclients,
+        })
+    }
+}
 
 /// Server error response
 #[derive(Debug)]

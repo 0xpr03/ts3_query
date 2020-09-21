@@ -9,6 +9,8 @@
 - Add server_groups function
 - Add online_clients function
 - Add online_clients_full function with every flag
+- Add channellist function
+- Add channellist_full function with every flag
 - Add target option to update_description function
 - Add server error code descriptions
 - Renamed get_servergroup_client_list to servergroup_client_cldbids

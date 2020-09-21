@@ -85,7 +85,7 @@ use std::time::Duration;
 pub mod managed;
 pub mod raw;
 mod data;
-pub use data::{OnlineClient, OnlineClientFull,ServerGroup, ServerGroupID, ChannelId, ClientId, ChannelGroupId,ClientDBId,ErrorResponse};
+pub use data::{OnlineClient, OnlineClientFull,ServerGroup, ServerGroupID, ChannelId, ClientId, ChannelGroupId,ClientDBId,ErrorResponse,Channel,ChannelFull};
 use io::Read;
 use raw::*;
 use std::fmt;
@@ -667,13 +667,33 @@ impl QueryClient {
         Ok(clients)
     }
 
-    // /// Returns a list of channels. Values are unescaped where applicable.
-    // ///
-    // /// Performs `channellist`
-    // pub fn channels(&mut self) -> Result<> {
-    //     writeln!(&mut self.tx, "channellist")?;
-    //     let res = self.read_response()?;
-    // }
+    /// Returns a list of channels. Values are unescaped where applicable.
+    ///
+    /// Performs `channellist`
+    pub fn channels(&mut self) -> Result<Vec<Channel>> {
+        writeln!(&mut self.tx, "channellist")?;
+        let res = self.read_response()?;
+
+        let channels = raw::parse_multi_hashmap(res,false).into_iter().map(|v|{
+            Ok(Channel::from_raw(v)?)
+        }).collect::<Result<_>>()?;
+
+        Ok(channels)
+    }
+
+    /// Returns a list of channels with full infos. Values are unescaped where applicable.
+    ///
+    /// Performs `channellist -topic -flags -voice -limits -icon -secondsempty`
+    pub fn channels_full(&mut self) -> Result<Vec<ChannelFull>> {
+        writeln!(&mut self.tx, "channellist -topic -flags -voice -limits -icon -secondsempty")?;
+        let res = self.read_response()?;
+
+        let channels = raw::parse_multi_hashmap(res,false).into_iter().map(|v|{
+            Ok(ChannelFull::from_raw(v)?)
+        }).collect::<Result<_>>()?;
+
+        Ok(channels)
+    }
 
     /// Returns a list of server groups. May contain templates and query groups if permitted. Values are unescaped where applicable.
     ///
