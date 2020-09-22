@@ -2,16 +2,17 @@ use crate::raw::*;
 use crate::Result;
 use std::collections::HashMap;
 
-pub type ServerId = i64;
-pub type ServerGroupID = i64;
-pub type ChannelId = i64;
+// Ts3 uses just whatever is available in the DB system, could be i32 or i64, though every foreign key is unsigned..
+pub type ServerId = u64;
+pub type ServerGroupID = u64;
+pub type ChannelId = u64;
 /// Temporary, per connection ID of a client, reused upon disconnect.  
 /// Not to be confused with a client database, myteamspeak or identity ID.
 pub type ClientId = u16;
 /// Server interal ID for client, not it's Identity / MyTeamspeak ID.
-pub type ClientDBId = i64;
-pub type ChannelGroupId = i64;
-/// CRC32 checksum of the channel icon, but received as i64 instead of u64, except when using clientdbinfo
+pub type ClientDBId = u64;
+pub type ChannelGroupId = u64;
+/// CRC32 checksum of the channel icon, but received as i64 instead of u64, except when using `clientdbinfo`
 pub type IconHash = i64;
 
 /// Server Group returned from `server_group_list`. Field names are according to the query protocol.
