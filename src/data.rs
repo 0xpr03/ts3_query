@@ -129,17 +129,19 @@ impl OnlineClientFull {
         let client_is_talker = bool_val_parser(&mut data, "client_is_talker")?;
         let client_is_priority_speaker = bool_val_parser(&mut data, "client_is_priority_speaker")?;
         let client_is_recording = bool_val_parser(&mut data, "client_is_recording")?;
-        let client_is_channel_commander = bool_val_parser(&mut data, "client_is_channel_commander")?;
-        let client_unique_identifier= string_val_parser(&mut data, "client_unique_identifier")?;
+        let client_is_channel_commander =
+            bool_val_parser(&mut data, "client_is_channel_commander")?;
+        let client_unique_identifier = string_val_parser(&mut data, "client_unique_identifier")?;
         let client_servergroups = int_list_val_parser(&mut data, "client_servergroups")?;
         let client_channel_group_id = int_val_parser(&mut data, "client_channel_group_id")?;
-        let client_channel_group_inherited_channel_id = int_val_parser(&mut data, "client_channel_group_inherited_channel_id")?;
-        let client_version= string_val_parser(&mut data, "client_version")?;
-        let client_platform= string_val_parser(&mut data, "client_platform")?;
+        let client_channel_group_inherited_channel_id =
+            int_val_parser(&mut data, "client_channel_group_inherited_channel_id")?;
+        let client_version = string_val_parser(&mut data, "client_version")?;
+        let client_platform = string_val_parser(&mut data, "client_platform")?;
         let client_idle_time = int_val_parser(&mut data, "client_idle_time")?;
         let client_created = int_val_parser(&mut data, "client_created")?;
         let client_lastconnected = int_val_parser(&mut data, "client_lastconnected")?;
-        let client_country= string_val_parser(&mut data, "client_country")?;
+        let client_country = string_val_parser(&mut data, "client_country")?;
         let connection_client_ip = string_val_parser(&mut data, "connection_client_ip")?;
         let client_badges = string_val_parser_opt(&mut data, "client_badges")?;
 
@@ -197,7 +199,8 @@ impl Channel {
         let channel_order = int_val_parser(&mut data, "channel_order")?;
         let channel_name: String = string_val_parser(&mut data, "channel_name")?;
         let total_clients = int_val_parser(&mut data, "total_clients")?;
-        let channel_needed_subscribe_power = int_val_parser(&mut data, "channel_needed_subscribe_power")?;
+        let channel_needed_subscribe_power =
+            int_val_parser(&mut data, "channel_needed_subscribe_power")?;
 
         Ok(Channel {
             cid,
@@ -243,13 +246,15 @@ impl ChannelFull {
         let channel_order = int_val_parser(&mut data, "channel_order")?;
         let channel_name: String = string_val_parser(&mut data, "channel_name")?;
         let total_clients = int_val_parser(&mut data, "total_clients")?;
-        let channel_needed_subscribe_power = int_val_parser(&mut data, "channel_needed_subscribe_power")?;
+        let channel_needed_subscribe_power =
+            int_val_parser(&mut data, "channel_needed_subscribe_power")?;
 
         let channel_topic = string_val_parser_opt(&mut data, "channel_topic")?;
         let channel_flag_default = bool_val_parser(&mut data, "channel_flag_default")?;
         let channel_flag_password = bool_val_parser(&mut data, "channel_flag_password")?;
         let channel_flag_permanent = bool_val_parser(&mut data, "channel_flag_permanent")?;
-        let channel_flag_semi_permanent = bool_val_parser(&mut data, "channel_flag_semi_permanent")?;
+        let channel_flag_semi_permanent =
+            bool_val_parser(&mut data, "channel_flag_semi_permanent")?;
         let channel_codec = int_val_parser(&mut data, "channel_codec")?;
         let channel_codec_quality = int_val_parser(&mut data, "channel_codec_quality")?;
         let channel_needed_talk_power = int_val_parser(&mut data, "channel_needed_talk_power")?;
