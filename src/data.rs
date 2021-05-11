@@ -377,7 +377,7 @@ impl From<&ChannelFull> for ChannelEdit {
 
 
         Self {
-            channel_name: c.channel_name.into(),
+            channel_name: c.channel_name.clone().into(),
             channel_life: Some(channel_life),
             pid: c.pid.into(),
             channel_order: c.channel_order.into(),
