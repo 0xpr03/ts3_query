@@ -305,6 +305,7 @@ pub struct ChannelEdit {
     pub channel_icon_id: Option<IconHash>,
 }
 
+#[derive(Default, Debug)]
 pub enum ChannelLife {
     Permanent,
     SemiPermanent,
