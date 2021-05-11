@@ -1,5 +1,5 @@
 use crate::raw::*;
-use crate::{Result, Ts3Error};
+use crate::Result;
 use std::collections::HashMap;
 
 // Ts3 uses just whatever is available in the DB system, could be i32 or i64, though every foreign key is unsigned..
@@ -288,11 +288,20 @@ impl ChannelFull {
     }
 }
 
+/// This struct defines the values of a channel that are changeable
+/// The difference to [ChannelFull] is that this does not contain values that are not changeable like
 #[derive(Debug, Default)]
 pub struct ChannelEdit {
+    /// The channel name
+    ///
+    /// **Note** Has to be unique or else it might fail!
     pub channel_name: Option<String>,
+    /// See [ChannelLife]
     pub channel_life: Option<ChannelLife>,
+    /// The parent channel id.
+    /// If set, the channel becomes a Sub-Channel
     pub pid: Option<ChannelId>,
+    /// The channel after which this channel gets placed
     pub channel_order: Option<ChannelId>,
     pub channel_topic: Option<String>,
     pub channel_password: Option<String>,
@@ -305,10 +314,14 @@ pub struct ChannelEdit {
     pub channel_icon_id: Option<IconHash>,
 }
 
+/// This defines when/if the channel gets automatically removed
 #[derive(Debug)]
 pub enum ChannelLife {
+    /// Permanent channel
     Permanent,
+    /// Semi-Permanent channel (gets removed after server restart)
     SemiPermanent,
+    /// Temporary channel (gets removed if empty)
     Temporary,
 }
 
@@ -322,7 +335,9 @@ impl ChannelEdit {
         if let Some(x) = &self.channel_life {
             match x {
                 ChannelLife::Permanent => result += &format!(" channel_flag_permanent={}", 1),
-                ChannelLife::SemiPermanent => result += &format!(" channel_flag_semi_permanent={}", 1),
+                ChannelLife::SemiPermanent => {
+                    result += &format!(" channel_flag_semi_permanent={}", 1)
+                }
                 ChannelLife::Temporary => result += &format!(" channel_flag_temporary={}", 1),
             }
         }
@@ -374,7 +389,6 @@ impl From<&ChannelFull> for ChannelEdit {
         } else {
             channel_life = ChannelLife::Temporary;
         }
-
 
         Self {
             channel_name: c.channel_name.clone().into(),

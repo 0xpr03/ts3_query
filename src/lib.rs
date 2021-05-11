@@ -23,6 +23,26 @@
 //!
 //! ```
 //!
+//! Cloning a channel
+//! ```rust, no_run
+//! use ts3_query::*;
+//!
+//! # fn main() -> Result<(),Ts3Error> {
+//! let mut client = QueryClient::new("localhost:10011")?;
+//! client.login("serveradmin", "password")?;
+//! client.select_server_by_port(9987)?;
+//!
+//! let channels = client.channels_full()?;
+//! if let Some(channel) = channels.first() {
+//!     client.create_channel(&ChannelEdit {
+//!         channel_name: Some("Cloned channel".to_owned()),
+//!         ..ChannelEdit::frorustm(channel)
+//!     })?;
+//! }
+//! # Ok(())
+//! # }
+//! ```
+//!
 //! Using the raw interface for setting client descriptions.
 //! ```rust,no_run
 //! use ts3_query::*;
@@ -73,7 +93,7 @@
 //! ```
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-use snafu::{Backtrace, OptionExt, ResultExt, Snafu, GenerateBacktrace};
+use snafu::{Backtrace, GenerateBacktrace, OptionExt, ResultExt, Snafu};
 use std::collections::HashMap;
 use std::fmt::{Debug, Write as FmtWrite};
 use std::io::{self, BufRead, BufReader, Write};
@@ -622,7 +642,7 @@ impl QueryClient {
                     context: "expected \\r delimiter, got: ",
                     data: String::from_utf8_lossy(&buffer),
                 }
-                    .fail();
+                .fail();
             }
 
             if !buffer.is_empty() {
@@ -710,7 +730,12 @@ impl QueryClient {
     ///
     /// Performs `channeldelete cid={} force={}`
     pub fn delete_channel(&mut self, id: ChannelId, force: bool) -> Result<()> {
-        writeln!(&mut self.tx, "channeldelete cid={} force={}", id, if force { 1 } else { 0 })?;
+        writeln!(
+            &mut self.tx,
+            "channeldelete cid={} force={}",
+            id,
+            if force { 1 } else { 0 }
+        )?;
         let _ = self.read_response()?;
 
         Ok(())
@@ -779,14 +804,14 @@ impl QueryClient {
     fn check_ok(msg: &str) -> Result<()> {
         let result: Vec<&str> = msg.split(' ').collect();
         #[cfg(debug)]
-            {
-                // should only be invoked on `error` lines, sanity check
-                assert_eq!(
-                    "check_ok invoked on non-error line",
-                    result.get(0),
-                    Some(&"error")
-                );
-            }
+        {
+            // should only be invoked on `error` lines, sanity check
+            assert_eq!(
+                "check_ok invoked on non-error line",
+                result.get(0),
+                Some(&"error")
+            );
+        }
         if let (Some(id), Some(msg)) = (result.get(1), result.get(2)) {
             let split_id: Vec<&str> = id.split('=').collect();
             let split_msg: Vec<&str> = msg.split('=').collect();
@@ -802,7 +827,7 @@ impl QueryClient {
                             msg: unescape_val(*msg),
                         },
                     }
-                        .fail();
+                    .fail();
                 } else {
                     return Ok(());
                 }
