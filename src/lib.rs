@@ -36,7 +36,7 @@
 //! if let Some(channel) = channels.first() {
 //!     client.create_channel(&ChannelEdit {
 //!         channel_name: Some("Cloned channel".to_owned()),
-//!         ..ChannelEdit::frorustm(channel)
+//!         ..ChannelEdit::from(channel)
 //!     })?;
 //! }
 //! # Ok(())
