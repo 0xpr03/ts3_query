@@ -345,7 +345,7 @@ impl ChannelEdit {
             result += &format!(" channel_maxfamilyclients={}", x);
         }
         if self.channel_flag_default {
-            result += &format!(" CHANNEL_FLAG_DEFAULT={}", 1);
+            result += &format!(" channel_flag_default={}", 1);
         }
         if let Some(x) = self.channel_codec {
             result += &format!(" channel_codec={}", x);
