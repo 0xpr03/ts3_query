@@ -381,7 +381,7 @@ impl From<&ChannelFull> for ChannelEdit {
             channel_life: Some(channel_life),
             pid: c.pid.into(),
             channel_order: c.channel_order.into(),
-            channel_topic: c.channel_topic,
+            channel_topic: c.channel_topic.clone(),
             channel_password: None,
             channel_maxclients: c.channel_maxclients.into(),
             channel_maxfamilyclients: c.channel_maxfamilyclients.into(),
