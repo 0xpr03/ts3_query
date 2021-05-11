@@ -313,7 +313,7 @@ pub enum ChannelLife {
 }
 
 impl ChannelEdit {
-    pub(crate) fn to_raw(&self) -> Result<String> {
+    pub(crate) fn to_raw(&self) -> String {
         let mut result = String::new();
 
         if let Some(x) = &self.channel_name {
@@ -360,7 +360,7 @@ impl ChannelEdit {
             result += &format!(" channel_icon_id={}", x);
         }
 
-        Ok(result)
+        result
     }
 }
 

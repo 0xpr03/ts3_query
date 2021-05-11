@@ -709,7 +709,7 @@ impl QueryClient {
     /// Deletes a channel
     ///
     /// Performs `channeldelete cid={} force={}`
-    pub fn channel_delete(&mut self, id: ChannelId, force: bool) -> Result<()> {
+    pub fn delete_channel(&mut self, id: ChannelId, force: bool) -> Result<()> {
         writeln!(&mut self.tx, "channeldelete cid={} force={}", id, if force { 1 } else { 0 })?;
         let _ = self.read_response()?;
 
@@ -718,7 +718,7 @@ impl QueryClient {
 
     /// Creates a channel
     /// Performs `channelcreate`
-    pub fn channel_create(&mut self, channel: &ChannelEdit) -> Result<ChannelId> {
+    pub fn create_channel(&mut self, channel: &ChannelEdit) -> Result<ChannelId> {
         writeln!(&mut self.tx, "channelcreate{}", &channel.to_raw())?;
         let res = self.read_response()?;
 
