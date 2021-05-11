@@ -327,7 +327,7 @@ impl ChannelEdit {
             }
         }
         if let Some(x) = self.pid {
-            result += &format!(" pid={}", x);
+            result += &format!(" cpid={}", x);
         }
         if let Some(x) = self.channel_order {
             result += &format!(" channel_order={}", x);
