@@ -364,8 +364,8 @@ impl ChannelEdit {
     }
 }
 
-impl From<ChannelFull> for ChannelEdit {
-    fn from(c: ChannelFull) -> Self {
+impl From<&ChannelFull> for ChannelEdit {
+    fn from(c: &ChannelFull) -> Self {
         let channel_life;
         if c.channel_flag_permanent {
             channel_life = ChannelLife::Permanent;
