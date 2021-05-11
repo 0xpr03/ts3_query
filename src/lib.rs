@@ -23,6 +23,26 @@
 //!
 //! ```
 //!
+//! Cloning a channel
+//! ```rust, no_run
+//! use ts3_query::*;
+//!
+//! # fn main() -> Result<(),Ts3Error> {
+//! let mut client = QueryClient::new("localhost:10011")?;
+//! client.login("serveradmin", "password")?;
+//! client.select_server_by_port(9987)?;
+//!
+//! let channels = client.channels_full()?;
+//! if let Some(channel) = channels.first() {
+//!     client.create_channel(&ChannelEdit {
+//!         channel_name: Some("Cloned channel".to_owned()),
+//!         ..ChannelEdit::from(channel)
+//!     })?;
+//! }
+//! # Ok(())
+//! # }
+//! ```
+//!
 //! Using the raw interface for setting client descriptions.
 //! ```rust,no_run
 //! use ts3_query::*;
@@ -72,7 +92,8 @@
 //! # }
 //! ```
 #![cfg_attr(docsrs, feature(doc_cfg))]
-use snafu::{Backtrace, OptionExt, ResultExt, Snafu};
+
+use snafu::{Backtrace, GenerateBacktrace, OptionExt, ResultExt, Snafu};
 use std::collections::HashMap;
 use std::fmt::{Debug, Write as FmtWrite};
 use std::io::{self, BufRead, BufReader, Write};
@@ -85,6 +106,7 @@ mod data;
 #[cfg(feature = "managed")]
 pub mod managed;
 pub mod raw;
+
 pub use data::*;
 use io::Read;
 use raw::*;
@@ -116,7 +138,7 @@ pub enum Ts3Error {
     #[snafu(display("Input was invalid UTF-8: {}", source))]
     Utf8Error { source: FromUtf8Error },
     /// Catch-all IO error, contains optional context
-    #[snafu(display("IO Error: {}{}, kind: {:?}", context, source,source.kind()))]
+    #[snafu(display("IO Error: {}{}, kind: {:?}", context, source, source.kind()))]
     Io {
         /// Context of action, empty per default.
         ///
@@ -704,6 +726,33 @@ impl QueryClient {
         Ok(channels)
     }
 
+    /// Deletes a channel
+    ///
+    /// Performs `channeldelete cid={} force={}`
+    pub fn delete_channel(&mut self, id: ChannelId, force: bool) -> Result<()> {
+        writeln!(
+            &mut self.tx,
+            "channeldelete cid={} force={}",
+            id,
+            if force { 1 } else { 0 }
+        )?;
+        let _ = self.read_response()?;
+
+        Ok(())
+    }
+
+    /// Creates a channel
+    /// Performs `channelcreate`
+    pub fn create_channel(&mut self, channel: &ChannelEdit) -> Result<ChannelId> {
+        writeln!(&mut self.tx, "channelcreate{}", &channel.to_raw())?;
+        let res = self.read_response()?;
+
+        let mut response = raw::parse_hashmap(res, false);
+        let cid = int_val_parser(&mut response, "cid")?;
+
+        Ok(cid)
+    }
+
     /// Returns a list of server groups. May contain templates and query groups if permitted. Values are unescaped where applicable.
     ///
     /// Performs `servergrouplist`
@@ -794,6 +843,7 @@ impl QueryClient {
 #[cfg(test)]
 mod test {
     use super::*;
+
     #[test]
     fn test_format_cldbids() {
         let ids = vec![0, 1, 2, 3];

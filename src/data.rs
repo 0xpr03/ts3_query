@@ -288,6 +288,132 @@ impl ChannelFull {
     }
 }
 
+/// This struct defines the values of a channel that are changeable
+/// The difference to [ChannelFull] is that this does not contain values that are not changeable like
+#[derive(Debug, Default)]
+pub struct ChannelEdit {
+    /// The channel name
+    ///
+    /// **Note** Has to be unique or else it might fail!
+    pub channel_name: Option<String>,
+    /// See [ChannelLife]
+    pub channel_life: Option<ChannelLife>,
+    /// The parent channel id.
+    /// If set, the channel becomes a Sub-Channel
+    pub pid: Option<ChannelId>,
+    /// The channel after which this channel gets placed
+    pub channel_order: Option<ChannelId>,
+    pub channel_topic: Option<String>,
+    pub channel_password: Option<String>,
+    pub channel_maxclients: Option<i32>,
+    pub channel_maxfamilyclients: Option<i32>,
+    pub channel_flag_default: bool,
+    pub channel_codec: Option<i32>,
+    pub channel_codec_quality: Option<u8>,
+    pub channel_needed_talk_power: Option<i32>,
+    pub channel_icon_id: Option<IconHash>,
+}
+
+/// This defines when/if the channel gets automatically removed
+#[derive(Debug)]
+pub enum ChannelLife {
+    /// Permanent channel
+    Permanent,
+    /// Semi-Permanent channel (gets removed after server restart)
+    SemiPermanent,
+    /// Temporary channel (gets removed if empty)
+    Temporary,
+}
+
+impl ChannelEdit {
+    pub(crate) fn to_raw(&self) -> String {
+        let mut result = String::new();
+
+        if let Some(x) = &self.channel_name {
+            result += &format!(" channel_name={}", &escape_arg(x));
+        }
+        if let Some(x) = &self.channel_life {
+            match x {
+                ChannelLife::Permanent => result += &format!(" channel_flag_permanent={}", 1),
+                ChannelLife::SemiPermanent => {
+                    result += &format!(" channel_flag_semi_permanent={}", 1)
+                }
+                ChannelLife::Temporary => result += &format!(" channel_flag_temporary={}", 1),
+            }
+        }
+        if let Some(x) = self.pid {
+            result += &format!(" cpid={}", x);
+        }
+        if let Some(x) = self.channel_order {
+            result += &format!(" channel_order={}", x);
+        }
+        if let Some(x) = &self.channel_topic {
+            result += &format!(" channel_topic={}", &escape_arg(x));
+        }
+        if let Some(x) = &self.channel_password {
+            result += &format!(" channel_password={}", &escape_arg(x));
+        }
+        if let Some(x) = self.channel_maxclients {
+            result += &format!(" channel_maxclients={}", x);
+        }
+        if let Some(x) = self.channel_maxfamilyclients {
+            result += &format!(" channel_maxfamilyclients={}", x);
+        }
+        if self.channel_flag_default {
+            result += &format!(" channel_flag_default={}", 1);
+        }
+        if let Some(x) = self.channel_codec {
+            result += &format!(" channel_codec={}", x);
+        }
+        if let Some(x) = self.channel_codec_quality {
+            result += &format!(" channel_codec_quality={}", x);
+        }
+        if let Some(x) = self.channel_needed_talk_power {
+            result += &format!(" channel_needed_talk_power={}", x);
+        }
+        if let Some(x) = self.channel_icon_id {
+            result += &format!(" channel_icon_id={}", x);
+        }
+
+        result
+    }
+}
+
+impl From<&ChannelFull> for ChannelEdit {
+    fn from(c: &ChannelFull) -> Self {
+        let channel_life;
+        if c.channel_flag_permanent {
+            channel_life = ChannelLife::Permanent;
+        } else if c.channel_flag_semi_permanent {
+            channel_life = ChannelLife::SemiPermanent;
+        } else {
+            channel_life = ChannelLife::Temporary;
+        }
+
+        Self {
+            channel_name: c.channel_name.clone().into(),
+            channel_life: Some(channel_life),
+            pid: c.pid.into(),
+            channel_order: c.channel_order.into(),
+            channel_topic: c.channel_topic.clone(),
+            channel_password: None,
+            channel_maxclients: c.channel_maxclients.into(),
+            channel_maxfamilyclients: c.channel_maxfamilyclients.into(),
+            channel_flag_default: c.channel_flag_default,
+            channel_codec: c.channel_codec.into(),
+            channel_codec_quality: c.channel_codec_quality.into(),
+            channel_needed_talk_power: c.channel_needed_talk_power.into(),
+            channel_icon_id: c.channel_icon_id.into(),
+        }
+    }
+}
+
+impl Default for ChannelLife {
+    fn default() -> Self {
+        Self::Temporary
+    }
+}
+
 /// Server error response
 #[derive(Debug)]
 pub struct ErrorResponse {
