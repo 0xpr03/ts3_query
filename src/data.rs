@@ -1,5 +1,5 @@
 use crate::raw::*;
-use crate::Result;
+use crate::{Result, Ts3Error};
 use std::collections::HashMap;
 
 // Ts3 uses just whatever is available in the DB system, could be i32 or i64, though every foreign key is unsigned..
@@ -290,8 +290,8 @@ impl ChannelFull {
 
 #[derive(Debug, Default)]
 pub struct ChannelEdit {
-    pub channel_name: String,
-    pub channel_life: ChannelLife,
+    pub channel_name: Option<String>,
+    pub channel_life: Option<ChannelLife>,
     pub pid: Option<ChannelId>,
     pub channel_order: Option<ChannelId>,
     pub channel_topic: Option<String>,
@@ -313,14 +313,18 @@ pub enum ChannelLife {
 }
 
 impl ChannelEdit {
-    pub(crate) fn to_raw(&self) -> String {
+    pub(crate) fn to_raw(&self) -> Result<String> {
         let mut result = String::new();
-        result += &format!(" channel_name={}", &escape_arg(&self.channel_name));
 
-        match self.channel_life {
-            ChannelLife::Permanent => result += &format!(" CHANNEL_FLAG_PERMANENT={}", 1),
-            ChannelLife::SemiPermanent => result += &format!(" CHANNEL_FLAG_SEMI_PERMANENT={}", 1),
-            ChannelLife::Temporary => result += &format!(" CHANNEL_FLAG_TEMPORARY={}", 1),
+        if let Some(x) = &self.channel_name {
+            result += &format!(" channel_name={}", &escape_arg(x));
+        }
+        if let Some(x) = &self.channel_life {
+            match x {
+                ChannelLife::Permanent => result += &format!(" channel_flag_permanent={}", 1),
+                ChannelLife::SemiPermanent => result += &format!(" channel_flag_semi_permanent={}", 1),
+                ChannelLife::Temporary => result += &format!(" channel_flag_temporary={}", 1),
+            }
         }
         if let Some(x) = self.pid {
             result += &format!(" pid={}", x);
@@ -355,7 +359,8 @@ impl ChannelEdit {
         if let Some(x) = self.channel_icon_id {
             result += &format!(" channel_icon_id={}", x);
         }
-        result
+
+        Ok(result)
     }
 }
 
