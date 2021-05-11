@@ -73,7 +73,7 @@
 //! ```
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-use snafu::{Backtrace, OptionExt, ResultExt, Snafu};
+use snafu::{Backtrace, OptionExt, ResultExt, Snafu, GenerateBacktrace};
 use std::collections::HashMap;
 use std::fmt::{Debug, Write as FmtWrite};
 use std::io::{self, BufRead, BufReader, Write};
@@ -714,6 +714,18 @@ impl QueryClient {
         let _ = self.read_response()?;
 
         Ok(())
+    }
+
+    /// Creates a channel
+    /// Performs `channelcreate`
+    pub fn channel_create(&mut self, channel: &ChannelEdit) -> Result<ChannelId> {
+        writeln!(&mut self.tx, "channelcreate{}", &channel.to_raw())?;
+        let res = self.read_response()?;
+
+        let mut response = raw::parse_hashmap(res, false);
+        let cid = int_val_parser(&mut response, "cid")?;
+
+        Ok(cid)
     }
 
     /// Returns a list of server groups. May contain templates and query groups if permitted. Values are unescaped where applicable.

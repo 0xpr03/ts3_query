@@ -288,6 +288,76 @@ impl ChannelFull {
     }
 }
 
+#[derive(Debug, Default)]
+pub struct ChannelEdit {
+    pub channel_name: String,
+    pub channel_life: ChannelLife,
+    pub pid: Option<ChannelId>,
+    pub channel_order: Option<ChannelId>,
+    pub channel_topic: Option<String>,
+    pub channel_password: Option<String>,
+    pub channel_maxclients: Option<i32>,
+    pub channel_maxfamilyclients: Option<i32>,
+    pub channel_flag_default: bool,
+    pub channel_codec: Option<i32>,
+    pub channel_codec_quality: Option<u8>,
+    pub channel_needed_talk_power: Option<i32>,
+    pub channel_icon_id: Option<IconHash>,
+}
+
+pub enum ChannelLife {
+    Permanent,
+    SemiPermanent,
+    Temporary,
+}
+
+impl ChannelEdit {
+    pub(crate) fn to_raw(&self) -> String {
+        let mut result = String::new();
+        result += &format!(" channel_name={}", &escape_arg(&self.channel_name));
+
+        match self.channel_life {
+            ChannelLife::Permanent => result += &format!(" CHANNEL_FLAG_PERMANENT={}", 1),
+            ChannelLife::SemiPermanent => result += &format!(" CHANNEL_FLAG_SEMI_PERMANENT={}", 1),
+            ChannelLife::Temporary => result += &format!(" CHANNEL_FLAG_TEMPORARY={}", 1),
+        }
+        if let Some(x) = self.pid {
+            result += &format!(" pid={}", x);
+        }
+        if let Some(x) = self.channel_order {
+            result += &format!(" channel_order={}", x);
+        }
+        if let Some(x) = &self.channel_topic {
+            result += &format!(" channel_topic={}", &escape_arg(x));
+        }
+        if let Some(x) = &self.channel_password {
+            result += &format!(" channel_password={}", &escape_arg(x));
+        }
+        if let Some(x) = self.channel_maxclients {
+            result += &format!(" channel_maxclients={}", x);
+        }
+        if let Some(x) = self.channel_maxfamilyclients {
+            result += &format!(" channel_maxfamilyclients={}", x);
+        }
+        if self.channel_flag_default {
+            result += &format!(" CHANNEL_FLAG_DEFAULT={}", 1);
+        }
+        if let Some(x) = self.channel_codec {
+            result += &format!(" channel_codec={}", x);
+        }
+        if let Some(x) = self.channel_codec_quality {
+            result += &format!(" channel_codec_quality={}", x);
+        }
+        if let Some(x) = self.channel_needed_talk_power {
+            result += &format!(" channel_needed_talk_power={}", x);
+        }
+        if let Some(x) = self.channel_icon_id {
+            result += &format!(" channel_icon_id={}", x);
+        }
+        result
+    }
+}
+
 /// Server error response
 #[derive(Debug)]
 pub struct ErrorResponse {
