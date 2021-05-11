@@ -364,6 +364,36 @@ impl ChannelEdit {
     }
 }
 
+impl From<ChannelFull> for ChannelEdit {
+    fn from(c: ChannelFull) -> Self {
+        let channel_life;
+        if c.channel_flag_permanent {
+            channel_life = ChannelLife::Permanent;
+        } else if c.channel_flag_semi_permanent {
+            channel_life = ChannelLife::SemiPermanent;
+        } else {
+            channel_life = ChannelLife::Temporary;
+        }
+
+
+        Self {
+            channel_name: c.channel_name.into(),
+            channel_life: Some(channel_life),
+            pid: c.pid.into(),
+            channel_order: c.channel_order.into(),
+            channel_topic: c.channel_topic,
+            channel_password: None,
+            channel_maxclients: c.channel_maxclients.into(),
+            channel_maxfamilyclients: c.channel_maxfamilyclients.into(),
+            channel_flag_default: c.channel_flag_default,
+            channel_codec: c.channel_codec.into(),
+            channel_codec_quality: c.channel_codec_quality.into(),
+            channel_needed_talk_power: c.channel_needed_talk_power.into(),
+            channel_icon_id: c.channel_icon_id.into(),
+        }
+    }
+}
+
 impl Default for ChannelLife {
     fn default() -> Self {
         Self::Temporary
