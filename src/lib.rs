@@ -72,6 +72,7 @@
 //! # }
 //! ```
 #![cfg_attr(docsrs, feature(doc_cfg))]
+
 use snafu::{Backtrace, OptionExt, ResultExt, Snafu};
 use std::collections::HashMap;
 use std::fmt::{Debug, Write as FmtWrite};
@@ -85,6 +86,7 @@ mod data;
 #[cfg(feature = "managed")]
 pub mod managed;
 pub mod raw;
+
 pub use data::*;
 use io::Read;
 use raw::*;
@@ -116,7 +118,7 @@ pub enum Ts3Error {
     #[snafu(display("Input was invalid UTF-8: {}", source))]
     Utf8Error { source: FromUtf8Error },
     /// Catch-all IO error, contains optional context
-    #[snafu(display("IO Error: {}{}, kind: {:?}", context, source,source.kind()))]
+    #[snafu(display("IO Error: {}{}, kind: {:?}", context, source, source.kind()))]
     Io {
         /// Context of action, empty per default.
         ///
@@ -620,7 +622,7 @@ impl QueryClient {
                     context: "expected \\r delimiter, got: ",
                     data: String::from_utf8_lossy(&buffer),
                 }
-                .fail();
+                    .fail();
             }
 
             if !buffer.is_empty() {
@@ -704,6 +706,16 @@ impl QueryClient {
         Ok(channels)
     }
 
+    /// Deletes a channel
+    ///
+    /// Performs `channeldelete cid={} force={}`
+    pub fn channel_delete(&mut self, id: ChannelId, force: bool) -> Result<()> {
+        writeln!(&mut self.tx, "channeldelete cid={} force={}", id, if force { 1 } else { 0 })?;
+        let _ = self.read_response()?;
+
+        Ok(())
+    }
+
     /// Returns a list of server groups. May contain templates and query groups if permitted. Values are unescaped where applicable.
     ///
     /// Performs `servergrouplist`
@@ -755,14 +767,14 @@ impl QueryClient {
     fn check_ok(msg: &str) -> Result<()> {
         let result: Vec<&str> = msg.split(' ').collect();
         #[cfg(debug)]
-        {
-            // should only be invoked on `error` lines, sanity check
-            assert_eq!(
-                "check_ok invoked on non-error line",
-                result.get(0),
-                Some(&"error")
-            );
-        }
+            {
+                // should only be invoked on `error` lines, sanity check
+                assert_eq!(
+                    "check_ok invoked on non-error line",
+                    result.get(0),
+                    Some(&"error")
+                );
+            }
         if let (Some(id), Some(msg)) = (result.get(1), result.get(2)) {
             let split_id: Vec<&str> = id.split('=').collect();
             let split_msg: Vec<&str> = msg.split('=').collect();
@@ -778,7 +790,7 @@ impl QueryClient {
                             msg: unescape_val(*msg),
                         },
                     }
-                    .fail();
+                        .fail();
                 } else {
                     return Ok(());
                 }
@@ -794,6 +806,7 @@ impl QueryClient {
 #[cfg(test)]
 mod test {
     use super::*;
+
     #[test]
     fn test_format_cldbids() {
         let ids = vec![0, 1, 2, 3];
