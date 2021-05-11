@@ -93,7 +93,7 @@
 //! ```
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-use snafu::{Backtrace, GenerateBacktrace, OptionExt, ResultExt, Snafu};
+use snafu::{Backtrace, OptionExt, ResultExt, Snafu};
 use std::collections::HashMap;
 use std::fmt::{Debug, Write as FmtWrite};
 use std::io::{self, BufRead, BufReader, Write};

@@ -1,3 +1,7 @@
+### 0.3.1
+
+- Add channel delete and create functions
+
 ### 0.3.0
 - Add proper types for channel & servergroup IDs, changes some parameter types
 - Accept both String and &str on multiple places
