@@ -305,7 +305,7 @@ pub struct ChannelEdit {
     pub channel_icon_id: Option<IconHash>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub enum ChannelLife {
     Permanent,
     SemiPermanent,
@@ -356,6 +356,12 @@ impl ChannelEdit {
             result += &format!(" channel_icon_id={}", x);
         }
         result
+    }
+}
+
+impl Default for ChannelLife {
+    fn default() -> Self {
+        Self::Temporary
     }
 }
 
