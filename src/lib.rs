@@ -303,6 +303,17 @@ impl QueryClient {
         Ok(())
     }
 
+    /// Update channel name, performs `channeledit channel_name`
+    pub fn rename_channel<T: AsRef<str>>(&mut self, channel: ChannelId, name: T) -> Result<()> {
+        writeln!(
+            &mut self.tx,
+            "channeledit cid={} channel_name={}",
+            channel,escape_arg(name)
+        )?;
+        let _ = self.read_response()?;
+        Ok(())
+    }
+
     /// Update client description. If target is none updates this clients description.
     ///
     /// Performs `clientupdate CLIENT_DESCRIPTION` or `clientedit clid=` with `CLIENT_DESCRIPTION` if target is set.
