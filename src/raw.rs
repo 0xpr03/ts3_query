@@ -379,7 +379,7 @@ mod test {
     pub fn test_escaped_input() {
         let v: Vec<u8> = vec![b'\\', b'/', 7, 8, 12, 11, b'\t', b'\r', b'\n'];
 
-        assert!(true, String::from_utf8(v).is_ok());
+        assert_eq!(true, String::from_utf8(v).is_ok());
     }
 
     #[test]
